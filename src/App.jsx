@@ -23,7 +23,7 @@ export default function App() {
       {activeView === 'board'     && <Board posts={posts} onDelete={deletePost} />}
       {activeView === 'calendar'  && <CalendarView posts={posts} />}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={updatePost} />}
-      <LogModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onSubmit={addPost} />
+      <LogModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onSubmit={addPost} posts={posts} />
     </>
   )
 }

@@ -59,9 +59,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
   function handleStatChange(postId, field, value) {
     const post = posts.find(p => p.id === postId)
     if (!post) return
-    onUpdatePost(postId, {
-      stats: { ...(post.stats || {}), [field]: value }
-    })
+    onUpdatePost(postId, { stats: { ...(post.stats || {}), [field]: value } })
   }
 
   const hasChartData = chartData.length > 0
@@ -137,9 +135,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
                   tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(180,78,255,0.05)' }} />
-                <Legend
-                  wrapperStyle={{ fontFamily: 'DM Mono', fontSize: 10, color: '#8b7eb8', paddingTop: 8 }}
-                />
+                <Legend wrapperStyle={{ fontFamily: 'DM Mono', fontSize: 10, color: '#8b7eb8', paddingTop: 8 }} />
                 {activeMetrics.includes('views') && <Bar dataKey="views" name="Views" fill="#00e5ff" radius={[2,2,0,0]} maxBarSize={32} />}
                 {activeMetrics.includes('engagement') && <Bar dataKey="engagement" name="Engagement" fill="#ff2d78" radius={[2,2,0,0]} maxBarSize={32} />}
                 {activeMetrics.includes('impressions') && <Bar dataKey="impressions" name="Impressions" fill="#b44eff" radius={[2,2,0,0]} maxBarSize={32} />}
@@ -168,7 +164,16 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
             filteredPosts.map(post => (
               <div key={post.id} className="analytics-row">
                 <div className="analytics-cell">
-                  <div className="analytics-cell-text">{post.title}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="analytics-cell-text">{post.title}</div>
+                    <a
+                      href={post.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="analytics-link-btn"
+                      title={post.url}
+                    >↗</a>
+                  </div>
                   <div className="analytics-cell-sub">{post.date} · {post.platform}</div>
                 </div>
                 <div className="analytics-cell">

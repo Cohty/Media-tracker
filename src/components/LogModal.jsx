@@ -3,20 +3,33 @@ import { SHOWS, PLATFORMS, MEDIA_TYPES, detectPlatform, fetchYTTitle } from '../
 
 const EMPTY = { url: '', title: '', show: SHOWS[0].name, mediaType: 'Full Episode', episodeNumber: '' }
 
-export default function LogModal({ isOpen, onClose, onSubmit }) {
+export default function LogModal({ isOpen, onClose, onSubmit, posts }) {
   const [form, setForm] = useState(EMPTY)
   const [platform, setPlatform] = useState('')
   const [fetching, setFetching] = useState(false)
   const [titleFetched, setTitleFetched] = useState(false)
   const urlInputRef = useRef(null)
   const timerRef = useRef(null)
+  const userEditedEpisode = useRef(false)
 
   useEffect(() => {
     if (isOpen) {
-      setForm(EMPTY); setPlatform(''); setFetching(false); setTitleFetched(false)
+      setForm(EMPTY); setPlatform(''); setFetching(false)
+      setTitleFetched(false); userEditedEpisode.current = false
       setTimeout(() => urlInputRef.current?.focus(), 50)
     }
   }, [isOpen])
+
+  // Auto-fill episode number for Clips
+  useEffect(() => {
+    if (!isOpen || userEditedEpisode.current) return
+    if (form.mediaType === 'Clip') {
+      const count = posts.filter(p => p.show === form.show && p.mediaType === 'Clip').length
+      setForm(f => ({ ...f, episodeNumber: `Clip${count + 1}` }))
+    } else {
+      setForm(f => ({ ...f, episodeNumber: '' }))
+    }
+  }, [form.mediaType, form.show, isOpen])
 
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onClose() }
@@ -37,6 +50,11 @@ export default function LogModal({ isOpen, onClose, onSubmit }) {
         if (title) { setForm(f => ({ ...f, title })); setTitleFetched(true) }
       }, 600)
     }
+  }
+
+  function handleEpisodeChange(val) {
+    userEditedEpisode.current = true
+    setForm(f => ({ ...f, episodeNumber: val }))
   }
 
   function handleSubmit() {
@@ -81,21 +99,29 @@ export default function LogModal({ isOpen, onClose, onSubmit }) {
           <div className="modal-row">
             <div className="field">
               <label>Show</label>
-              <select value={form.show} onChange={e => setForm(f => ({ ...f, show: e.target.value }))}>
+              <select value={form.show} onChange={e => { userEditedEpisode.current = false; setForm(f => ({ ...f, show: e.target.value })) }}>
                 {SHOWS.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
               </select>
             </div>
             <div className="field">
               <label>Media Type</label>
-              <select value={form.mediaType} onChange={e => setForm(f => ({ ...f, mediaType: e.target.value }))}>
+              <select value={form.mediaType} onChange={e => { userEditedEpisode.current = false; setForm(f => ({ ...f, mediaType: e.target.value })) }}>
                 {MEDIA_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
           <div className="field">
-            <label>Episode # <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(optional)</span></label>
+            <label>
+              Episode #
+              {form.mediaType === 'Clip' && (
+                <span style={{ color: 'var(--cyan)', marginLeft: 6, fontSize: 8 }}>auto-filled</span>
+              )}
+              {form.mediaType !== 'Clip' && (
+                <span style={{ color: 'var(--text3)', marginLeft: 6 }}>(optional)</span>
+              )}
+            </label>
             <input type="text" placeholder="e.g. E42 or 042..."
-              value={form.episodeNumber} onChange={e => setForm(f => ({ ...f, episodeNumber: e.target.value }))} />
+              value={form.episodeNumber} onChange={e => handleEpisodeChange(e.target.value)} />
           </div>
         </div>
         <div className="modal-actions">

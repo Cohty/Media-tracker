@@ -419,3 +419,15 @@ body {
 .stat-input::-webkit-outer-spin-button,
 .stat-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 .stat-input::placeholder { color: var(--text3); }
+
+.analytics-link-btn {
+  flex-shrink: 0;
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  padding: 2px 5px; border-radius: 2px;
+  border: 1px solid rgba(0,229,255,0.25); background: rgba(0,229,255,0.06);
+  color: var(--cyan); text-decoration: none;
+  box-shadow: var(--win-out); transition: background .1s, box-shadow .1s;
+  line-height: 1;
+}
+.analytics-link-btn:hover { background: rgba(0,229,255,0.14); box-shadow: var(--win-out), 0 0 5px rgba(0,229,255,0.2); }
+.analytics-link-btn:active { box-shadow: var(--win-in); }
