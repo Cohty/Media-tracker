@@ -3,7 +3,7 @@ import { SHOWS, PLATFORMS, MEDIA_TYPES, detectPlatform, fetchYTTitle } from '../
 
 const EMPTY = { url: '', title: '', show: SHOWS[0].name, mediaType: 'Full Episode', episodeNumber: '' }
 
-export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, posts }) {
+export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, posts, isContributor }) {
   const [form, setForm] = useState(EMPTY)
   const [platform, setPlatform] = useState('')
   const [fetching, setFetching] = useState(false)
@@ -24,7 +24,6 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  // Duplicate URL detection
   const duplicatePost = useMemo(() => {
     const url = form.url.trim()
     if (url.length < 10) return null
@@ -54,10 +53,7 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
     }
   }
 
-  function handleJump() {
-    onNavigateToPost(duplicatePost.id)
-    onClose()
-  }
+  function handleJump() { onNavigateToPost(duplicatePost.id); onClose() }
 
   function handleSubmit() {
     if (!canSubmit) return
@@ -72,55 +68,44 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
   return (
     <div className={`overlay${isOpen ? ' open' : ''}`} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal">
-        <div className="modal-titlebar">
-          <span className="modal-titlebar-text">📝 Log New Post</span>
+        <div className="modal-titlebar" style={isContributor ? { background: 'linear-gradient(90deg, #001840, #004080)' } : {}}>
+          <span className="modal-titlebar-text">
+            {isContributor ? '📤 Submit Post for Review' : '📝 Log New Post'}
+          </span>
           <div className="modal-titlebar-controls">
             <button className="modal-ctrl">_</button>
             <button className="modal-ctrl">□</button>
             <button className="modal-ctrl" onClick={onClose}>×</button>
           </div>
         </div>
+
+        {isContributor && (
+          <div className="contributor-notice">
+            <span style={{ color: 'var(--cyan)' }}>ℹ</span>
+            Your submission will be reviewed by an admin before going live.
+          </div>
+        )}
+
         <div className="modal-body">
           <div className="field">
             <label>URL</label>
             <input ref={urlInputRef} type="url" placeholder="Paste the link here..."
               value={form.url} onChange={e => handleUrlChange(e.target.value)}
               style={duplicatePost ? { borderColor: 'rgba(240,224,64,0.5)' } : {}} />
-
-            {/* Duplicate warning */}
-            {duplicatePost && (
+            {duplicatePost ? (
               <div className="dup-warning">
-                <div className="dup-warning-header">
-                  <span className="dup-icon">⚠</span>
-                  <span>This URL is already logged</span>
-                </div>
+                <div className="dup-warning-header"><span className="dup-icon">⚠</span><span>This URL is already logged</span></div>
                 <div className="dup-post-preview">
-                  {dupShow && (
-                    <div className="dup-show-bar" style={{ background: dupShow.hex + '22', borderLeft: `3px solid ${dupShow.hex}` }}>
-                      <span style={{ color: dupShow.hex, fontFamily: 'DM Mono', fontSize: 9 }}>{duplicatePost.show}</span>
-                    </div>
-                  )}
+                  {dupShow && <div className="dup-show-bar" style={{ background: dupShow.hex + '22', borderLeft: `3px solid ${dupShow.hex}` }}><span style={{ color: dupShow.hex, fontFamily: 'DM Mono', fontSize: 9 }}>{duplicatePost.show}</span></div>}
                   <div className="dup-post-title">{duplicatePost.title}</div>
-                  <div className="dup-post-meta">
-                    {duplicatePost.platform} · {duplicatePost.date}
-                    {duplicatePost.episodeNumber && ` · EP ${duplicatePost.episodeNumber}`}
-                  </div>
+                  <div className="dup-post-meta">{duplicatePost.platform} · {duplicatePost.date}{duplicatePost.episodeNumber ? ` · EP ${duplicatePost.episodeNumber}` : ''}</div>
                 </div>
-                <button className="dup-jump-btn" onClick={handleJump}>
-                  Jump to post on board →
-                </button>
+                <button className="dup-jump-btn" onClick={handleJump}>Jump to post on board →</button>
               </div>
-            )}
-
-            {/* Normal platform hint */}
-            {!duplicatePost && (
+            ) : (
               <div className="field-hint">
                 {fetching && 'Fetching title from YouTube…'}
-                {!fetching && pm && (
-                  <span className="platform-tag" style={{ background: pm.bg, color: pm.color, borderColor: pm.pb }}>
-                    {platform} detected{titleFetched ? ' · title filled' : ''}
-                  </span>
-                )}
+                {!fetching && pm && <span className="platform-tag" style={{ background: pm.bg, color: pm.color, borderColor: pm.pb }}>{platform} detected{titleFetched ? ' · title filled' : ''}</span>}
               </div>
             )}
           </div>
@@ -161,13 +146,16 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
             </>
           )}
         </div>
+
         <div className="modal-actions">
           <button className="btn-ghost" onClick={onClose}>Cancel</button>
           {duplicatePost
-            ? <button className="btn-primary" style={{ background: 'var(--yellow)', color: '#000', boxShadow: 'var(--win-out), 0 0 12px rgba(240,224,64,0.3)' }} onClick={handleJump}>
-                Jump to existing post
+            ? <button className="btn-primary" style={{ background: 'var(--yellow)', color: '#000' }} onClick={handleJump}>Jump to existing post</button>
+            : <button className="btn-primary" disabled={!canSubmit}
+                style={isContributor ? { background: 'var(--cyan)', boxShadow: 'var(--win-out), 0 0 12px rgba(0,229,255,0.3)' } : {}}
+                onClick={handleSubmit}>
+                {isContributor ? 'SUBMIT FOR REVIEW' : 'LOG POST'}
               </button>
-            : <button className="btn-primary" disabled={!canSubmit} onClick={handleSubmit}>LOG POST</button>
           }
         </div>
       </div>

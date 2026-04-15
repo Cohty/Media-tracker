@@ -1,41 +1,63 @@
-import { useState, useEffect } from 'react'
-
-const STORAGE_KEY = 'media_posts'
-
-function loadPosts() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') }
-  catch { return [] }
-}
+import { useState, useEffect, useCallback } from 'react'
 
 export function usePosts() {
-  const [posts, setPosts] = useState(loadPosts)
+  const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts))
-  }, [posts])
+  const fetchPosts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/posts')
+      if (res.ok) setPosts(await res.json())
+    } catch (e) {
+      console.error('Failed to fetch posts', e)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  function addPost({ url, title, show, platform, mediaType, episodeNumber, clipIndex }) {
+  useEffect(() => { fetchPosts() }, [fetchPosts])
+
+  async function addPost(data) {
     const post = {
-      id: Date.now(),
-      url, title, show,
-      platform: platform || 'Other',
-      mediaType: mediaType || 'Clip',
-      episodeNumber: episodeNumber || '',
-      clipIndex: clipIndex || '',   // e.g. 'Clip', 'Clip2', 'Clip3'
-      stats: { views: '', engagement: '', impressions: '' },
+      id: String(Date.now()),
+      ...data,
+      platform: data.platform || 'Other',
       date: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       ts: Date.now(),
     }
-    setPosts(prev => [post, ...prev])
+    const res = await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(post),
+    })
+    const result = await res.json()
+    if (result.status === 'published') {
+      setPosts(prev => [post, ...prev])
+    }
+    return result.status // 'published' | 'pending_review'
   }
 
-  function deletePost(id) {
-    setPosts(prev => prev.filter(p => p.id !== id))
+  async function deletePost(id) {
+    const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' })
+    const result = await res.json()
+    if (result.status === 'deleted') {
+      setPosts(prev => prev.filter(p => p.id !== id))
+    }
+    return result.status
   }
 
-  function updatePost(id, updates) {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
+  async function updatePost(id, updates) {
+    const res = await fetch(`/api/posts/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    const result = await res.json()
+    if (result.status === 'updated') {
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, ...updates, stats: { ...p.stats, ...(updates.stats || {}) } } : p))
+    }
+    return result.status
   }
 
-  return { posts, addPost, deletePost, updatePost }
+  return { posts, loading, addPost, deletePost, updatePost, refetch: fetchPosts }
 }

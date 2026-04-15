@@ -1,0 +1,63 @@
+import { requireAuth, jsonResponse } from '../../../_auth.js'
+
+export async function onRequestPost({ params, request, env }) {
+  const { error, user } = requireAuth(request, env)
+  if (error) return error
+  if (!user.isAdmin) return jsonResponse({ error: 'Forbidden' }, 403)
+
+  const pendingId = params.id
+  const { decision, note } = await request.json() // decision: 'approve' | 'reject'
+
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM pending_posts WHERE id = ? AND status = 'pending'`
+  ).bind(pendingId).all()
+
+  if (results.length === 0) return jsonResponse({ error: 'Not found or already reviewed' }, 404)
+  const pending = results[0]
+  const payload = JSON.parse(pending.payload)
+
+  if (decision === 'approve') {
+    if (pending.action === 'add') {
+      await env.DB.prepare(`
+        INSERT INTO posts
+          (id, url, title, show_name, platform, media_type, episode_number, clip_index,
+           post_date, ts, stats_views, stats_engagement, stats_impressions, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        payload.id, payload.url, payload.title, payload.show, payload.platform,
+        payload.mediaType || null, payload.episodeNumber || null, payload.clipIndex || null,
+        payload.date, payload.ts, null, null, null, pending.submitted_by, Date.now()
+      ).run()
+
+    } else if (pending.action === 'edit') {
+      const fieldMap = {
+        url: 'url', title: 'title', show: 'show_name', platform: 'platform',
+        mediaType: 'media_type', episodeNumber: 'episode_number', clipIndex: 'clip_index',
+      }
+      const sets = []; const vals = []
+      if (payload.stats) {
+        if (payload.stats.views !== undefined) { sets.push('stats_views = ?'); vals.push(payload.stats.views) }
+        if (payload.stats.engagement !== undefined) { sets.push('stats_engagement = ?'); vals.push(payload.stats.engagement) }
+        if (payload.stats.impressions !== undefined) { sets.push('stats_impressions = ?'); vals.push(payload.stats.impressions) }
+      }
+      Object.keys(fieldMap).forEach(f => {
+        if (payload[f] !== undefined) { sets.push(`${fieldMap[f]} = ?`); vals.push(payload[f]) }
+      })
+      if (sets.length > 0) {
+        vals.push(pending.post_id)
+        await env.DB.prepare(`UPDATE posts SET ${sets.join(', ')} WHERE id = ?`).bind(...vals).run()
+      }
+
+    } else if (pending.action === 'delete') {
+      await env.DB.prepare('DELETE FROM posts WHERE id = ?').bind(pending.post_id).run()
+    }
+  }
+
+  // Mark as reviewed regardless of approve/reject
+  await env.DB.prepare(`
+    UPDATE pending_posts SET status = ?, reviewed_by = ?, reviewed_at = ?, review_note = ?
+    WHERE id = ?
+  `).bind(decision === 'approve' ? 'approved' : 'rejected', user.email, Date.now(), note || null, pendingId).run()
+
+  return jsonResponse({ ok: true, decision })
+}
