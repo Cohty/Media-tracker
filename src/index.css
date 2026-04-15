@@ -573,7 +573,7 @@ body {
   margin: 4px 0;
 }
 
-.act-move:hover { color: var(--cyan) !important; border-color: rgba(0,229,255,0.4) !important; }
+.act-edit:hover { color: var(--cyan) !important; border-color: rgba(0,229,255,0.4) !important; }
 
 .move-post-preview {
   background: var(--surface2); border: 1px solid var(--border);

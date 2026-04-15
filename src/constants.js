@@ -15,7 +15,7 @@ export const PLATFORMS = {
   Other:     { color: '#b44eff', bg: 'rgba(180,78,255,0.1)',   pb: 'rgba(180,78,255,0.3)' },
 }
 
-export const MEDIA_TYPES = ['Clip', 'Full Episode', 'Broadcast']
+export const MEDIA_TYPES = ['Clip', 'Full Episode', 'Broadcast', 'Article']
 
 export function detectPlatform(url) {
   const u = url.toLowerCase()

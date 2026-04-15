@@ -49,7 +49,7 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
     <div className={`overlay${isOpen ? ' open' : ''}`} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal">
         <div className="modal-titlebar" style={{ background: 'linear-gradient(90deg, #001a40, #004080)' }}>
-          <span className="modal-titlebar-text">✦ Move Post</span>
+          <span className="modal-titlebar-text">✦ Edit Post</span>
           <div className="modal-titlebar-controls">
             <button className="modal-ctrl">_</button>
             <button className="modal-ctrl">□</button>
@@ -105,7 +105,7 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
             disabled={unchanged}
             onClick={handleSave}
           >
-            MOVE POST
+            SAVE CHANGES
           </button>
         </div>
       </div>

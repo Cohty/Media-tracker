@@ -4,6 +4,7 @@ import { PLATFORMS } from '../constants'
 const TYPE_COLORS = {
   'Full Episode': { color: '#39ff8c', bg: 'rgba(57,255,140,0.08)', border: 'rgba(57,255,140,0.25)' },
   'Broadcast':    { color: '#f0a020', bg: 'rgba(240,160,32,0.08)', border: 'rgba(240,160,32,0.25)' },
+  'Article':      { color: '#b44eff', bg: 'rgba(180,78,255,0.08)', border: 'rgba(180,78,255,0.25)' },
 }
 const CLIP_COLOR = { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.25)' }
 
@@ -26,7 +27,7 @@ export default function Card({ post, onDelete, onMove, highlighted }) {
         <span className="card-date">{post.date}</span>
         <div className="card-actions">
           <a className="act-btn" href={post.url} target="_blank" rel="noreferrer">Open ↗</a>
-          <button className="act-btn act-move" onClick={() => onMove(post)}>Move</button>
+          <button className="act-btn act-edit" onClick={() => onMove(post)}>Edit</button>
           <button className="act-btn act-del" onClick={() => setConfirming(true)}>Remove</button>
         </div>
       </div>
