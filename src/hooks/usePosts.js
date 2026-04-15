@@ -3,11 +3,8 @@ import { useState, useEffect } from 'react'
 const STORAGE_KEY = 'media_posts'
 
 function loadPosts() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-  } catch {
-    return []
-  }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') }
+  catch { return [] }
 }
 
 export function usePosts() {
@@ -17,16 +14,15 @@ export function usePosts() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(posts))
   }, [posts])
 
-  function addPost({ url, title, show, platform }) {
+  function addPost({ url, title, show, platform, mediaType, episodeNumber }) {
     const post = {
       id: Date.now(),
-      url,
-      title,
-      show,
+      url, title, show,
       platform: platform || 'Other',
-      date: new Date().toLocaleDateString('en-US', {
-        month: '2-digit', day: '2-digit', year: 'numeric',
-      }),
+      mediaType: mediaType || 'Clip',
+      episodeNumber: episodeNumber || '',
+      stats: { views: '', engagement: '', impressions: '' },
+      date: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       ts: Date.now(),
     }
     setPosts(prev => [post, ...prev])
@@ -36,5 +32,9 @@ export function usePosts() {
     setPosts(prev => prev.filter(p => p.id !== id))
   }
 
-  return { posts, addPost, deletePost }
+  function updatePost(id, updates) {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
+  }
+
+  return { posts, addPost, deletePost, updatePost }
 }

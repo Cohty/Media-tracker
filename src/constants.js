@@ -15,6 +15,8 @@ export const PLATFORMS = {
   Other:     { color: '#b44eff', bg: 'rgba(180,78,255,0.1)',   pb: 'rgba(180,78,255,0.3)' },
 }
 
+export const MEDIA_TYPES = ['Clip', 'Full Episode', 'Broadcast']
+
 export function detectPlatform(url) {
   const u = url.toLowerCase()
   if (u.includes('youtube.com') || u.includes('youtu.be')) return 'YouTube'
