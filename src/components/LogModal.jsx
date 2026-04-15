@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { SHOWS, PLATFORMS, MEDIA_TYPES, detectPlatform, fetchYTTitle } from '../constants'
 
 const EMPTY = { url: '', title: '', show: SHOWS[0].name, mediaType: 'Full Episode', episodeNumber: '' }
@@ -10,32 +10,30 @@ export default function LogModal({ isOpen, onClose, onSubmit, posts }) {
   const [titleFetched, setTitleFetched] = useState(false)
   const urlInputRef = useRef(null)
   const timerRef = useRef(null)
-  const userEditedEpisode = useRef(false)
 
   useEffect(() => {
     if (isOpen) {
-      setForm(EMPTY); setPlatform(''); setFetching(false)
-      setTitleFetched(false); userEditedEpisode.current = false
+      setForm(EMPTY); setPlatform(''); setFetching(false); setTitleFetched(false)
       setTimeout(() => urlInputRef.current?.focus(), 50)
     }
   }, [isOpen])
-
-  // Auto-fill episode number for Clips
-  useEffect(() => {
-    if (!isOpen || userEditedEpisode.current) return
-    if (form.mediaType === 'Clip') {
-      const count = posts.filter(p => p.show === form.show && p.mediaType === 'Clip').length
-      setForm(f => ({ ...f, episodeNumber: `Clip${count + 1}` }))
-    } else {
-      setForm(f => ({ ...f, episodeNumber: '' }))
-    }
-  }, [form.mediaType, form.show, isOpen])
 
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  // Compute clip sequence based on show + episodeNumber combo
+  const clipIndex = useMemo(() => {
+    if (form.mediaType !== 'Clip') return ''
+    const count = posts.filter(p =>
+      p.show === form.show &&
+      p.mediaType === 'Clip' &&
+      p.episodeNumber === form.episodeNumber
+    ).length
+    return count === 0 ? 'Clip' : `Clip${count + 1}`
+  }, [form.mediaType, form.show, form.episodeNumber, posts])
 
   function handleUrlChange(url) {
     setForm(f => ({ ...f, url }))
@@ -52,14 +50,9 @@ export default function LogModal({ isOpen, onClose, onSubmit, posts }) {
     }
   }
 
-  function handleEpisodeChange(val) {
-    userEditedEpisode.current = true
-    setForm(f => ({ ...f, episodeNumber: val }))
-  }
-
   function handleSubmit() {
     if (!canSubmit) return
-    onSubmit({ ...form, platform })
+    onSubmit({ ...form, platform, clipIndex })
     onClose()
   }
 
@@ -99,13 +92,13 @@ export default function LogModal({ isOpen, onClose, onSubmit, posts }) {
           <div className="modal-row">
             <div className="field">
               <label>Show</label>
-              <select value={form.show} onChange={e => { userEditedEpisode.current = false; setForm(f => ({ ...f, show: e.target.value })) }}>
+              <select value={form.show} onChange={e => setForm(f => ({ ...f, show: e.target.value }))}>
                 {SHOWS.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
               </select>
             </div>
             <div className="field">
               <label>Media Type</label>
-              <select value={form.mediaType} onChange={e => { userEditedEpisode.current = false; setForm(f => ({ ...f, mediaType: e.target.value })) }}>
+              <select value={form.mediaType} onChange={e => setForm(f => ({ ...f, mediaType: e.target.value }))}>
                 {MEDIA_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
@@ -113,15 +106,22 @@ export default function LogModal({ isOpen, onClose, onSubmit, posts }) {
           <div className="field">
             <label>
               Episode #
-              {form.mediaType === 'Clip' && (
-                <span style={{ color: 'var(--cyan)', marginLeft: 6, fontSize: 8 }}>auto-filled</span>
-              )}
-              {form.mediaType !== 'Clip' && (
-                <span style={{ color: 'var(--text3)', marginLeft: 6 }}>(optional)</span>
-              )}
+              <span style={{ color: 'var(--text3)', marginLeft: 6 }}>(optional)</span>
             </label>
-            <input type="text" placeholder="e.g. E42 or 042..."
-              value={form.episodeNumber} onChange={e => handleEpisodeChange(e.target.value)} />
+            <input type="text" placeholder="e.g. 73 or E42..."
+              value={form.episodeNumber} onChange={e => setForm(f => ({ ...f, episodeNumber: e.target.value }))} />
+            {form.mediaType === 'Clip' && (
+              <div className="clip-index-preview">
+                <span className="clip-index-arrow">→</span>
+                <span>will be logged as</span>
+                <span className="clip-index-badge">{clipIndex}</span>
+                {clipIndex !== 'Clip' && (
+                  <span style={{ color: 'var(--text3)' }}>
+                    ({clipIndex === 'Clip2' ? '1 clip' : `${parseInt(clipIndex.replace('Clip',''))-1} clips`} already logged{form.episodeNumber ? ` for ep ${form.episodeNumber}` : ''})
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="modal-actions">

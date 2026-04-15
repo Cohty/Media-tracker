@@ -2,15 +2,19 @@ import { useState } from 'react'
 import { PLATFORMS } from '../constants'
 
 const TYPE_COLORS = {
-  'Clip':         { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.25)' },
   'Full Episode': { color: '#39ff8c', bg: 'rgba(57,255,140,0.08)', border: 'rgba(57,255,140,0.25)' },
   'Broadcast':    { color: '#f0a020', bg: 'rgba(240,160,32,0.08)', border: 'rgba(240,160,32,0.25)' },
 }
+const CLIP_COLOR = { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.25)' }
 
 export default function Card({ post, onDelete }) {
   const [confirming, setConfirming] = useState(false)
   const pm = PLATFORMS[post.platform] || PLATFORMS.Other
-  const tc = post.mediaType ? (TYPE_COLORS[post.mediaType] || TYPE_COLORS['Clip']) : null
+
+  // For clips, show clipIndex ('Clip', 'Clip2', etc.) — fall back to mediaType
+  const isClip = post.mediaType === 'Clip'
+  const typeLabel = isClip ? (post.clipIndex || 'Clip') : post.mediaType
+  const tc = isClip ? CLIP_COLOR : (post.mediaType ? TYPE_COLORS[post.mediaType] : null)
 
   return (
     <div className="card">
@@ -20,7 +24,7 @@ export default function Card({ post, onDelete }) {
         </div>
         {tc && (
           <div className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>
-            {post.mediaType}
+            {typeLabel}
           </div>
         )}
         {post.episodeNumber && (

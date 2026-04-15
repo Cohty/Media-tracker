@@ -14,13 +14,14 @@ export function usePosts() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(posts))
   }, [posts])
 
-  function addPost({ url, title, show, platform, mediaType, episodeNumber }) {
+  function addPost({ url, title, show, platform, mediaType, episodeNumber, clipIndex }) {
     const post = {
       id: Date.now(),
       url, title, show,
       platform: platform || 'Other',
       mediaType: mediaType || 'Clip',
       episodeNumber: episodeNumber || '',
+      clipIndex: clipIndex || '',   // e.g. 'Clip', 'Clip2', 'Clip3'
       stats: { views: '', engagement: '', impressions: '' },
       date: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       ts: Date.now(),
