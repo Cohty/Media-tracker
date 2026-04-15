@@ -1,18 +1,18 @@
 export const SHOWS = [
-  { name: 'The Crypto Beat',       hex: '#BA7517', bg: '#FAEEDA', tc: '#633806' },
-  { name: 'The Big Brain Podcast', hex: '#185FA5', bg: '#E6F1FB', tc: '#042C53' },
-  { name: 'Layer One',             hex: '#A32D2D', bg: '#FCEBEB', tc: '#501313' },
-  { name: 'The White Papers',      hex: '#0F6E56', bg: '#E1F5EE', tc: '#04342C' },
-  { name: 'Standalones',           hex: '#534AB7', bg: '#EEEDFE', tc: '#26215C' },
+  { name: 'The Crypto Beat',       hex: '#f0a020', bg: '#2a1e00', tc: '#f0a020' },
+  { name: 'The Big Brain Podcast', hex: '#00e5ff', bg: '#001e26', tc: '#00e5ff' },
+  { name: 'Layer One',             hex: '#ff2d78', bg: '#2a0016', tc: '#ff2d78' },
+  { name: 'The White Papers',      hex: '#39ff8c', bg: '#002218', tc: '#39ff8c' },
+  { name: 'Standalones',           hex: '#b44eff', bg: '#1a0030', tc: '#b44eff' },
 ]
 
 export const PLATFORMS = {
-  YouTube:   { color: '#791F1F', bg: '#F7C1C1' },
-  X:         { color: '#2C2C2A', bg: '#D3D1C7' },
-  LinkedIn:  { color: '#0C447C', bg: '#B5D4F4' },
-  Instagram: { color: '#72243E', bg: '#F4C0D1' },
-  TikTok:    { color: '#085041', bg: '#9FE1CB' },
-  Other:     { color: '#444441', bg: '#D3D1C7' },
+  YouTube:   { color: '#ff4444', bg: 'rgba(255,68,68,0.12)',   pb: 'rgba(255,68,68,0.3)' },
+  X:         { color: '#c8c4e0', bg: 'rgba(200,196,224,0.08)', pb: 'rgba(200,196,224,0.2)' },
+  LinkedIn:  { color: '#00a8ff', bg: 'rgba(0,168,255,0.1)',    pb: 'rgba(0,168,255,0.3)' },
+  Instagram: { color: '#ff2d78', bg: 'rgba(255,45,120,0.1)',   pb: 'rgba(255,45,120,0.3)' },
+  TikTok:    { color: '#00e5ff', bg: 'rgba(0,229,255,0.1)',    pb: 'rgba(0,229,255,0.3)' },
+  Other:     { color: '#b44eff', bg: 'rgba(180,78,255,0.1)',   pb: 'rgba(180,78,255,0.3)' },
 }
 
 export function detectPlatform(url) {
