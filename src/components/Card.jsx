@@ -7,35 +7,26 @@ const TYPE_COLORS = {
 }
 const CLIP_COLOR = { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.25)' }
 
-export default function Card({ post, onDelete }) {
+export default function Card({ post, onDelete, onMove, highlighted }) {
   const [confirming, setConfirming] = useState(false)
   const pm = PLATFORMS[post.platform] || PLATFORMS.Other
-
-  // For clips, show clipIndex ('Clip', 'Clip2', etc.) — fall back to mediaType
   const isClip = post.mediaType === 'Clip'
   const typeLabel = isClip ? (post.clipIndex || 'Clip') : post.mediaType
   const tc = isClip ? CLIP_COLOR : (post.mediaType ? TYPE_COLORS[post.mediaType] : null)
 
   return (
-    <div className="card">
+    <div className={`card${highlighted ? ' card--highlighted' : ''}`}>
       <div className="card-pills-row">
-        <div className="p-pill" style={{ background: pm.bg, color: pm.color, '--pb': pm.pb }}>
-          {post.platform}
-        </div>
-        {tc && (
-          <div className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>
-            {typeLabel}
-          </div>
-        )}
-        {post.episodeNumber && (
-          <div className="p-pill ep-pill">{post.episodeNumber}</div>
-        )}
+        <div className="p-pill" style={{ background: pm.bg, color: pm.color, '--pb': pm.pb }}>{post.platform}</div>
+        {tc && <div className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>{typeLabel}</div>}
+        {post.episodeNumber && <div className="p-pill ep-pill">{post.episodeNumber}</div>}
       </div>
       <div className="card-title">{post.title}</div>
       <div className="card-footer">
         <span className="card-date">{post.date}</span>
         <div className="card-actions">
           <a className="act-btn" href={post.url} target="_blank" rel="noreferrer">Open ↗</a>
+          <button className="act-btn act-move" onClick={() => onMove(post)}>Move</button>
           <button className="act-btn act-del" onClick={() => setConfirming(true)}>Remove</button>
         </div>
       </div>

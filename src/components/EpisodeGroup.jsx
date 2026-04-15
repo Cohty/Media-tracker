@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PLATFORMS } from '../constants'
 
 const TYPE_COLORS = {
@@ -7,7 +7,7 @@ const TYPE_COLORS = {
 }
 const CLIP_COLOR = { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.25)' }
 
-function PostRow({ post, onDelete }) {
+function PostRow({ post, onDelete, onMove, highlighted }) {
   const [confirming, setConfirming] = useState(false)
   const pm = PLATFORMS[post.platform] || PLATFORMS.Other
   const isClip = post.mediaType === 'Clip'
@@ -15,22 +15,17 @@ function PostRow({ post, onDelete }) {
   const tc = isClip ? CLIP_COLOR : (post.mediaType ? TYPE_COLORS[post.mediaType] : null)
 
   return (
-    <div className="ep-post-row">
+    <div className={`ep-post-row${highlighted ? ' ep-post-row--highlighted' : ''}`}>
       <div className="card-pills-row" style={{ marginBottom: 5 }}>
-        <div className="p-pill" style={{ background: pm.bg, color: pm.color, '--pb': pm.pb }}>
-          {post.platform}
-        </div>
-        {tc && (
-          <div className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>
-            {typeLabel}
-          </div>
-        )}
+        <div className="p-pill" style={{ background: pm.bg, color: pm.color }}>{post.platform}</div>
+        {tc && <div className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>{typeLabel}</div>}
       </div>
       <div className="card-title" style={{ marginBottom: 6 }}>{post.title}</div>
       <div className="card-footer">
         <span className="card-date">{post.date}</span>
         <div className="card-actions" style={{ opacity: 1 }}>
           <a className="act-btn" href={post.url} target="_blank" rel="noreferrer">Open ↗</a>
+          <button className="act-btn act-move" onClick={() => onMove(post)}>Move</button>
           <button className="act-btn act-del" onClick={() => setConfirming(true)}>Remove</button>
         </div>
       </div>
@@ -47,28 +42,32 @@ function PostRow({ post, onDelete }) {
   )
 }
 
-export default function EpisodeGroup({ episodeNumber, posts, onDelete }) {
+export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDelete, onMove, highlightedPostId }) {
+  const containsHighlighted = posts.some(p => p.id === highlightedPostId)
   const [expanded, setExpanded] = useState(false)
 
-  // Unique platforms in this group
+  // Auto-expand if a post inside is highlighted
+  useEffect(() => {
+    if (containsHighlighted) setExpanded(true)
+  }, [containsHighlighted])
+
   const platforms = [...new Set(posts.map(p => p.platform))]
-  // Clip labels (sorted: Clip, Clip2, Clip3...)
-  const clipLabels = posts
-    .filter(p => p.mediaType === 'Clip')
-    .map(p => p.clipIndex || 'Clip')
+  const clipLabels = posts.filter(p => p.mediaType === 'Clip').map(p => p.clipIndex || 'Clip')
     .sort((a, b) => {
       const na = a === 'Clip' ? 1 : parseInt(a.replace('Clip', ''))
       const nb = b === 'Clip' ? 1 : parseInt(b.replace('Clip', ''))
       return na - nb
     })
   const otherTypes = [...new Set(posts.filter(p => p.mediaType !== 'Clip').map(p => p.mediaType).filter(Boolean))]
+  const displayLabel = isEpisode ? `EP ${label}` : (label.length > 26 ? label.slice(0, 26) + '…' : label)
 
   return (
-    <div className={`ep-group${expanded ? ' expanded' : ''}`}>
-      {/* Header — always visible */}
+    <div className={`ep-group${expanded ? ' expanded' : ''}${containsHighlighted ? ' ep-group--highlighted' : ''}`}>
       <div className="ep-group-header" onClick={() => setExpanded(v => !v)}>
         <div className="ep-group-left">
-          <span className="ep-group-num">EP {episodeNumber}</span>
+          <span className="ep-group-num" style={!isEpisode ? { fontSize: 10, color: 'var(--cyan)', textShadow: '0 0 8px rgba(0,229,255,0.4)' } : {}}>
+            {displayLabel}
+          </span>
           <span className="ep-group-count">{posts.length} post{posts.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="ep-group-right">
@@ -76,42 +75,22 @@ export default function EpisodeGroup({ episodeNumber, posts, onDelete }) {
         </div>
       </div>
 
-      {/* Summary pills — visible when collapsed */}
       {!expanded && (
         <div className="ep-group-summary">
           <div className="card-pills-row" style={{ flexWrap: 'wrap', gap: 3 }}>
-            {platforms.map(p => {
-              const pm = PLATFORMS[p] || PLATFORMS.Other
-              return (
-                <span key={p} className="p-pill" style={{ background: pm.bg, color: pm.color }}>
-                  {p}
-                </span>
-              )
-            })}
-            {clipLabels.map(label => (
-              <span key={label} className="p-pill" style={{ background: CLIP_COLOR.bg, color: CLIP_COLOR.color, borderColor: CLIP_COLOR.border }}>
-                {label}
-              </span>
-            ))}
-            {otherTypes.map(t => {
-              const tc = TYPE_COLORS[t]
-              return tc ? (
-                <span key={t} className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>
-                  {t}
-                </span>
-              ) : null
-            })}
+            {platforms.map(p => { const pm = PLATFORMS[p] || PLATFORMS.Other; return <span key={p} className="p-pill" style={{ background: pm.bg, color: pm.color }}>{p}</span> })}
+            {clipLabels.map(l => <span key={l} className="p-pill" style={{ background: CLIP_COLOR.bg, color: CLIP_COLOR.color, borderColor: CLIP_COLOR.border }}>{l}</span>)}
+            {otherTypes.map(t => { const tc = TYPE_COLORS[t]; return tc ? <span key={t} className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>{t}</span> : null })}
           </div>
         </div>
       )}
 
-      {/* Expanded post list */}
       {expanded && (
         <div className="ep-group-posts">
           {posts.map((post, i) => (
             <div key={post.id}>
               {i > 0 && <div className="ep-post-divider" />}
-              <PostRow post={post} onDelete={onDelete} />
+              <PostRow post={post} onDelete={onDelete} onMove={onMove} highlighted={post.id === highlightedPostId} />
             </div>
           ))}
         </div>

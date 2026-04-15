@@ -572,3 +572,71 @@ body {
   height: 1px; background: var(--border);
   margin: 4px 0;
 }
+
+.act-move:hover { color: var(--cyan) !important; border-color: rgba(0,229,255,0.4) !important; }
+
+.move-post-preview {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px;
+  box-shadow: var(--win-in); margin-bottom: 14px;
+}
+
+/* ── DUPLICATE WARNING ── */
+.dup-warning {
+  margin-top: 8px;
+  background: rgba(240,224,64,0.06);
+  border: 1px solid rgba(240,224,64,0.3);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.dup-warning-header {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 10px;
+  background: rgba(240,224,64,0.08);
+  border-bottom: 1px solid rgba(240,224,64,0.2);
+  font-family: 'DM Mono'; font-size: 10px; color: var(--yellow);
+  font-weight: 500; letter-spacing: 0.3px;
+}
+.dup-icon { font-size: 11px; }
+.dup-post-preview { padding: 10px 10px 8px; }
+.dup-show-bar {
+  padding: 3px 8px; margin-bottom: 6px; border-radius: 2px;
+}
+.dup-post-title {
+  font-family: 'Syne'; font-size: 12px; color: var(--text);
+  line-height: 1.4; margin-bottom: 4px;
+}
+.dup-post-meta {
+  font-family: 'DM Mono'; font-size: 9px; color: var(--text3);
+}
+.dup-jump-btn {
+  display: block; width: 100%;
+  padding: 8px 10px;
+  background: rgba(240,224,64,0.08);
+  border: none; border-top: 1px solid rgba(240,224,64,0.2);
+  color: var(--yellow); font-family: 'DM Mono'; font-size: 10px;
+  cursor: pointer; text-align: left; letter-spacing: 0.3px;
+  transition: background .1s;
+}
+.dup-jump-btn:hover { background: rgba(240,224,64,0.15); }
+
+/* ── CARD HIGHLIGHT ── */
+.card--highlighted {
+  border-color: var(--yellow) !important;
+  animation: card-glow 3s ease-out forwards;
+}
+@keyframes card-glow {
+  0%   { box-shadow: var(--win-in), 0 0 24px rgba(240,224,64,0.55); border-color: var(--yellow); }
+  60%  { box-shadow: var(--win-in), 0 0 12px rgba(240,224,64,0.25); }
+  100% { box-shadow: var(--win-in), 0 0 0px rgba(240,224,64,0); border-color: var(--border); }
+}
+
+.ep-post-row--highlighted {
+  background: rgba(240,224,64,0.05);
+  border-radius: var(--radius);
+  animation: card-glow 3s ease-out forwards;
+}
+
+.ep-group--highlighted {
+  border-color: rgba(240,224,64,0.4) !important;
+}
