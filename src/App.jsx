@@ -7,6 +7,7 @@ import Nav from './components/Nav'
 import Board from './components/Board'
 import CalendarView from './components/CalendarView'
 import AnalyticsView from './components/AnalyticsView'
+import PodcastView from './components/PodcastView'
 import LogModal from './components/LogModal'
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
       {activeView === 'board'     && <Board posts={posts} onDelete={deletePost} />}
       {activeView === 'calendar'  && <CalendarView posts={posts} />}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={updatePost} />}
+      {activeView === 'podcast'   && <PodcastView />}
       <LogModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onSubmit={addPost} posts={posts} />
     </>
   )

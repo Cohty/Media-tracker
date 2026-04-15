@@ -2,6 +2,7 @@ const TABS = [
   { id: 'board',     label: 'BOARD',     icon: '▦' },
   { id: 'calendar',  label: 'CALENDAR',  icon: '◫' },
   { id: 'analytics', label: 'ANALYTICS', icon: '▲' },
+  { id: 'podcast',   label: 'PODCAST',   icon: '🎙' },
 ]
 
 export default function Nav({ activeView, onChangeView }) {
