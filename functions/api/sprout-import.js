@@ -215,16 +215,13 @@ export async function onRequestPost({ request, env }) {
     if (matchType) tagged++
     else {
       // Untagged X posts are news headlines → Newsroom
-      // Truly unknown content from other platforms → Unassigned
-      if (platform === 'X') {
-        showName = 'Newsroom'
-        mediaType = 'Article'
-      }
+      if (platform === 'X') showName = 'Newsroom'
       unassigned++
     }
 
     const isEditorial = showName === 'Editorials'
-    const mediaType = resolveMediaType(platform, isEditorial)
+    const isNewsroom = showName === 'Newsroom'
+    const mediaType = isNewsroom ? 'Article' : resolveMediaType(platform, isEditorial)
     const text = (sp.text || '').replace(/https?:\/\/\S+/g, '').trim()
     const title = text.length > 120 ? text.slice(0, 120) + '…' : text || permalink
     const createdAt = sp.created_time ? new Date(sp.created_time) : new Date()
