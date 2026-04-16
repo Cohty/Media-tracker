@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import { SHOWS, MEDIA_TYPES } from '../constants'
 import { useSprout } from '../hooks/useSprout'
+import SproutImportModal from './SproutImportModal'
 
 const METRICS = [
   { id: 'views',       label: 'Views',       color: '#00e5ff' },
@@ -22,6 +23,11 @@ const CustomTooltip = ({ active, payload, label }) => {
           {p.name}: {Number(p.value).toLocaleString()}
         </div>
       ))}
+    <SproutImportModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        onDone={() => { setImportOpen(false); window.location.reload() }}
+      />
     </div>
   )
 }
@@ -33,6 +39,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
   const [syncStatus, setSyncStatus] = useState(null) // null | 'syncing' | 'done' | 'error'
   const [syncMsg, setSyncMsg] = useState('')
   const [lastSynced, setLastSynced] = useState(null)
+  const [importOpen, setImportOpen] = useState(false)
 
   const { profileIds, status: sproutStatus, syncPostStats } = useSprout()
 
@@ -135,7 +142,13 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
               </span>
             )}
             <button
-              className={`sprout-sync-btn${syncStatus === 'syncing' ? ' syncing' : ''}${!sproutReady ? ' disabled' : ''}`}
+              className="sprout-import-btn"
+                onClick={() => setImportOpen(true)}
+              >
+                📥 IMPORT FROM SPROUT
+              </button>
+              <button
+                className={`sprout-sync-btn${syncStatus === 'syncing' ? ' syncing' : ''}${!sproutReady ? ' disabled' : ''}`}
               onClick={sproutReady && syncStatus !== 'syncing' ? handleSproutSync : undefined}
               title={!sproutReady ? 'Add SPROUT_API_TOKEN and SPROUT_CUSTOMER_ID in Cloudflare env vars' : 'Sync stats from Sprout Social'}
             >
@@ -245,6 +258,11 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
           )}
         </div>
       </div>
+    <SproutImportModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        onDone={() => { setImportOpen(false); window.location.reload() }}
+      />
     </div>
   )
 }

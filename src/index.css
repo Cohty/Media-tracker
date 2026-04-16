@@ -775,3 +775,23 @@ body {
 .sync-status--syncing { color: var(--cyan); background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.2); }
 .sync-status--done    { color: var(--green); background: rgba(57,255,140,0.06); border: 1px solid rgba(57,255,140,0.2); }
 .sync-status--error   { color: var(--pink); background: rgba(255,45,120,0.06); border: 1px solid rgba(255,45,120,0.2); }
+
+/* ── CARD STATS ── */
+.card-stats-row {
+  display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px;
+}
+.card-stat-badge {
+  font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.3px;
+  padding: 2px 7px; border-radius: 2px; border: 1px solid;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+
+.sprout-import-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'DM Mono'; font-size: 10px; letter-spacing: 0.5px;
+  padding: 6px 14px; border-radius: var(--radius); cursor: pointer;
+  background: rgba(57,255,140,0.06); border: 1px solid rgba(57,255,140,0.25);
+  color: var(--green); box-shadow: var(--win-out); transition: background .15s;
+}
+.sprout-import-btn:hover { background: rgba(57,255,140,0.14); }
+.sprout-import-btn:active { box-shadow: var(--win-in); }

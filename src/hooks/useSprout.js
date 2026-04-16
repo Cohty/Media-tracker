@@ -66,7 +66,7 @@ export function useSprout() {
 
     const now = new Date()
     const start = new Date(now)
-    start.setDate(now.getDate() - 90)
+    start.setDate(now.getDate() - 365)
     const fmt = d => d.toISOString().split('.')[0]
 
     const profileFilter = `customer_profile_id.eq(${profileIds.join(', ')})`
@@ -123,4 +123,16 @@ export function useSprout() {
   }
 
   return { profileIds, status, error, syncPostStats }
+}
+
+export async function importFromSprout(days = 365, showName = 'Standalones', onProgress) {
+  onProgress?.('Importing from Sprout…')
+  const res = await fetch('/api/sprout-import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ days, showName }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  return data
 }
