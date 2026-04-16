@@ -15,6 +15,7 @@ import MovePostModal from './components/MovePostModal'
 import ReviewPanel from './components/ReviewPanel'
 import BatchBar from './components/BatchBar'
 import ImportSummaryModal from './components/ImportSummaryModal'
+import InboxView from './components/InboxView'
 
 export default function App() {
   const { user } = useUser()
@@ -131,6 +132,7 @@ export default function App() {
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={handleUpdatePost}
         onImportDone={logId => setSummaryLogId(logId)} />}
       {activeView === 'podcast'   && <PodcastView />}
+      {activeView === 'inbox'     && <InboxView posts={posts} onUpdatePost={handleUpdatePost} onDeletePost={handleDeletePost} />}
 
       {toast && <div className={`toast toast--${toast.type}`}>{toast.type==='pending'?'⏳ ':'✓ '}{toast.msg}</div>}
 
