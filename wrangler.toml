@@ -2,4 +2,7 @@ name = "media-tracker"
 pages_build_output_dir = "dist"
 compatibility_date = "2024-01-01"
 
-
+[[d1_databases]]
+binding = "DB"
+database_name = "media-tracker-db"
+database_id = "14f51a51-e935-48b7-b556-c3ccc04103a4"
