@@ -15,27 +15,12 @@ async function sproutPost(path, body) {
   })
   const data = await res.json()
   if (!res.ok) {
-    const msg = Array.isArray(data?.error) ? data.error.join('. ')
-      : Array.isArray(data?.errors) ? data.errors.map(e => e.detail || e.message || e).join('. ')
-      : data?.message || (typeof data?.error === 'string' ? data.error : null) || `HTTP ${res.status}`
+    const msg = typeof data?.error === 'string' ? data.error
+      : Array.isArray(data?.error) ? data.error.join('. ')
+      : data?.message || `HTTP ${res.status}`
     throw new Error(msg)
   }
   return data
-}
-
-// From the debug output we know profiles live in data.data[]
-// with customer_profile_id as the key (not id)
-function extractProfileIds(data) {
-  const arr = data?.data?.data || data?.data || []
-  if (Array.isArray(arr) && arr.length > 0) {
-    const ids = arr
-      .map(p => p.customer_profile_id || p.id)
-      .filter(Boolean)
-      .map(Number)
-      .filter(n => !isNaN(n) && n > 0)
-    if (ids.length > 0) return ids
-  }
-  return []
 }
 
 export function useSprout() {
@@ -44,10 +29,14 @@ export function useSprout() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    // metadata/customer/profiles returns 404 — use metadata/customer directly
     sproutGet('metadata/customer')
       .then(data => {
-        const ids = extractProfileIds(data)
+        const arr = data?.data || []
+        const ids = arr
+          .map(p => p.customer_profile_id)
+          .filter(Boolean)
+          .map(Number)
+          .filter(n => !isNaN(n) && n > 0)
         setProfileIds(ids)
         setStatus(ids.length > 0 ? 'ready' : 'no-profiles')
       })
@@ -59,39 +48,32 @@ export function useSprout() {
 
   async function syncPostStats(posts, onProgress) {
     if (profileIds.length === 0) {
-      throw new Error('No Sprout profile IDs loaded. Check SPROUT_CUSTOMER_ID env var.')
+      throw new Error('No Sprout profile IDs found.')
     }
 
     const now = new Date()
     const start = new Date(now)
     start.setDate(now.getDate() - 90)
-    const fmt = d => d.toISOString().split('.')[0]
 
-    // Correct payload format confirmed from Sprout docs:
-    // - start_time/end_time are top-level strings
-    // - filters is an array with customer_profile_id (integers)
-    // - metrics is an array of strings
-    // - NO extra fields array (causes "invalid fields" error)
+    // Sprout filter format: "field.operator(values)"
+    // Date range uses .. (two dots) between start and end
+    const fmt = d => d.toISOString().replace('Z', '').split('.')[0]
+    const profileFilter = `customer_profile_id.eq(${profileIds.join(', ')})`
+    const dateFilter = `created_time.in(${fmt(start)}..${fmt(now)})`
+
     const payload = {
-      start_time: fmt(start),
-      end_time:   fmt(now),
-      filters: [
-        {
-          field:    'customer_profile_id',
-          operator: 'in',
-          value:    profileIds,
-        },
-      ],
+      filters: [profileFilter, dateFilter],
+      fields: ['perma_link', 'created_time', 'text'],
       metrics: [
-        'impressions',
-        'engagements',
-        'video_views',
-        'likes',
-        'comments',
-        'shares',
+        'lifetime.impressions',
+        'lifetime.engagements',
+        'lifetime.video_views',
+        'lifetime.likes',
+        'lifetime.comments',
+        'lifetime.shares',
       ],
-      page:     1,
-      per_page: 200,
+      page: 1,
+      limit: 200,
     }
 
     onProgress?.('Fetching post stats from Sprout…')
@@ -99,17 +81,16 @@ export function useSprout() {
     const sproutPosts = data?.data || []
     onProgress?.(`Got ${sproutPosts.length} posts from Sprout, matching…`)
 
-    // Build URL → stats map using permalink
+    // Build URL → stats map using perma_link
     const statsMap = {}
     sproutPosts.forEach(sp => {
-      const attrs = sp.attributes || sp
-      const permalink = attrs?.permalink || attrs?.perma_link || attrs?.url || ''
-      const metrics   = attrs?.metrics || {}
+      const permalink = sp.perma_link || sp.permalink || ''
+      const metrics = sp.metrics || {}
       if (permalink) {
         statsMap[permalink.toLowerCase().trim()] = {
-          views:       String(metrics.video_views ?? metrics.reach ?? ''),
-          engagement:  String(metrics.engagements ?? ''),
-          impressions: String(metrics.impressions ?? ''),
+          views:       String(metrics['lifetime.video_views'] ?? metrics['lifetime.impressions'] ?? ''),
+          engagement:  String(metrics['lifetime.engagements'] ?? ''),
+          impressions: String(metrics['lifetime.impressions'] ?? ''),
           lastSynced:  Date.now(),
         }
       }
