@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend
 } from 'recharts'
 import { SHOWS, MEDIA_TYPES } from '../constants'
 import { useSprout } from '../hooks/useSprout'
@@ -197,9 +196,10 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
               <div>No stats yet — sync from Sprout or add manually below</div>
             </div>
           ) : (
-            <ChartBoundary dataKey={filterShow+filterType+activeMetrics.join()} height={260}>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 60 }}>
+            <div style={{ width: '100%', height: 280 }}>
+              <BarChart width={Math.max(chartData.length * 60, 400)} height={260} data={chartData}
+                margin={{ top: 8, right: 8, left: -10, bottom: 60 }}
+                style={{ margin: '0 auto' }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(180,78,255,0.08)" vertical={false} />
                 <XAxis dataKey="name" tick={{ fill: '#4a4168', fontSize: 9, fontFamily: 'DM Mono' }}
                   angle={-40} textAnchor="end" interval={0}
@@ -209,12 +209,11 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
                   tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(180,78,255,0.05)' }} />
                 <Legend wrapperStyle={{ fontFamily: 'DM Mono', fontSize: 10, color: '#8b7eb8', paddingTop: 8 }} />
-                {activeMetrics.includes('views') && <Bar dataKey="views" name="Views" fill="#00e5ff" radius={[2,2,0,0]} maxBarSize={32} />}
-                {activeMetrics.includes('engagement') && <Bar dataKey="engagement" name="Engagement" fill="#ff2d78" radius={[2,2,0,0]} maxBarSize={32} />}
-                {activeMetrics.includes('impressions') && <Bar dataKey="impressions" name="Impressions" fill="#b44eff" radius={[2,2,0,0]} maxBarSize={32} />}
+                {activeMetrics.includes('views') && <Bar dataKey="views" name="Views" fill="#00e5ff" radius={[2,2,0,0]} maxBarSize={40} />}
+                {activeMetrics.includes('engagement') && <Bar dataKey="engagement" name="Engagement" fill="#ff2d78" radius={[2,2,0,0]} maxBarSize={40} />}
+                {activeMetrics.includes('impressions') && <Bar dataKey="impressions" name="Impressions" fill="#b44eff" radius={[2,2,0,0]} maxBarSize={40} />}
               </BarChart>
-            </ResponsiveContainer>
-            </ChartBoundary>
+            </div>
           )}
         </div>
       </div>

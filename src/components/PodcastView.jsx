@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar
 } from 'recharts'
 
 const PLATFORM_KEY = 'transistor_platform_stats'
@@ -276,8 +275,9 @@ export default function PodcastView() {
               ) : trendData.length === 0 ? (
                 <div className="empty-analytics">No download data for this period</div>
               ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={trendData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <LineChart width={Math.max(trendData.length * 30, 500)} height={200} data={trendData}
+                    margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(180,78,255,0.08)" vertical={false} />
                     <XAxis dataKey="date" tick={{ fill: '#4a4168', fontSize: 9, fontFamily: 'DM Mono' }}
                       axisLine={false} tickLine={false} />
@@ -289,7 +289,7 @@ export default function PodcastView() {
                       stroke="#b44eff" strokeWidth={2} dot={false}
                       activeDot={{ r: 4, fill: '#b44eff', stroke: '#0f0c1e', strokeWidth: 2 }} />
                   </LineChart>
-                </ResponsiveContainer>
+                </div>
               )}
             </div>
           </div>
