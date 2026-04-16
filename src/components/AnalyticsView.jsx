@@ -88,7 +88,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
   }
 
   const hasChartData = chartData.length > 0
-  const sproutReady = sproutStatus === 'ready'
+  const sproutReady = !['no-key', 'idle'].includes(sproutStatus)
 
   return (
     <div className="analytics-wrapper">
