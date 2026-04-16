@@ -741,3 +741,12 @@ body {
 .toast--success { background: var(--surface); border: 1px solid rgba(57,255,140,0.4); color: var(--green); }
 .toast--pending { background: var(--surface); border: 1px solid rgba(0,229,255,0.4); color: var(--cyan); }
 .toast--info    { background: var(--surface); border: 1px solid var(--border2); color: var(--text2); }
+
+.logout-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text3); border-radius: var(--radius); padding: 6px 10px;
+  font-size: 13px; cursor: pointer; box-shadow: var(--win-out);
+  transition: color .1s;
+}
+.logout-btn:hover { color: var(--pink); border-color: rgba(255,45,120,0.3); }
+.logout-btn:active { box-shadow: var(--win-in); }

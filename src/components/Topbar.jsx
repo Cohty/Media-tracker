@@ -1,3 +1,8 @@
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' })
+  window.location.reload()
+}
+
 export default function Topbar({ postCount, showCount, onLogClick, user, pendingCount, onReviewClick }) {
   return (
     <header className="topbar">
@@ -17,7 +22,7 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
         {user?.isAdmin && pendingCount === 0 && (
           <button className="review-quiet-btn" onClick={onReviewClick}>Review queue</button>
         )}
-        {user && (
+        {user?.email && (
           <div className="topbar-user">
             <span className="topbar-user-email">{user.email}</span>
             <span className={`topbar-user-role ${user.isAdmin ? 'admin' : 'contributor'}`}>
@@ -27,8 +32,11 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
         )}
         {user?.isAdmin
           ? <button className="log-btn" onClick={onLogClick}>+ LOG POST</button>
-          : <button className="log-btn" style={{ background: 'var(--cyan)', boxShadow: 'var(--win-out), 0 0 10px rgba(0,229,255,0.3)' }} onClick={onLogClick}>+ SUBMIT POST</button>
+          : <button className="log-btn" style={{ background: 'var(--cyan)', boxShadow: 'var(--win-out), 0 0 10px rgba(0,229,255,0.3)' }} onClick={onLogClick}>
+              + SUBMIT POST
+            </button>
         }
+        <button className="logout-btn" onClick={logout} title="Sign out">⏏</button>
       </div>
     </header>
   )
