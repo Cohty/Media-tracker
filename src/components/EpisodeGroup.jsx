@@ -72,7 +72,10 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
       return na - nb
     })
   const otherTypes = [...new Set(posts.filter(p => p.mediaType !== 'Clip').map(p => p.mediaType).filter(Boolean))]
-  const displayLabel = isEpisode ? `EP ${label}` : (label.length > 26 ? label.slice(0, 26) + '…' : label)
+  const isNumericLabel = /^\d+$/.test(label)
+  const displayLabel = isEpisode && isNumericLabel
+    ? `EP ${label}`
+    : (label.length > 26 ? label.slice(0, 26) + '…' : label)
 
   // How many in this group are selected
   const selectedCount = posts.filter(p => selectedIds?.has(p.id)).length
@@ -118,6 +121,11 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
             {clipLabels.map(l => <span key={l} className="p-pill" style={{ background: CLIP_COLOR.bg, color: CLIP_COLOR.color, borderColor: CLIP_COLOR.border }}>{l}</span>)}
             {otherTypes.map(t => { const tc = TYPE_COLORS[t]; return tc ? <span key={t} className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>{t}</span> : null })}
           </div>
+          {posts[0]?.date && (
+            <div style={{ fontFamily: 'DM Mono', fontSize: 8, color: 'var(--text3)', marginTop: 4 }}>
+              {posts[0].date}
+            </div>
+          )}
         </div>
       )}
 

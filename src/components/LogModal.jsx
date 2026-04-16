@@ -19,7 +19,17 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
   }, [isOpen])
 
   useEffect(() => {
-    function onKey(e) { if (e.key === 'Escape') onClose() }
+    function onKey(e) {
+      if (e.key === 'Escape') onClose()
+      // Enter submits the form unless focused on a textarea or select
+      if (e.key === 'Enter' && !e.shiftKey) {
+        const tag = document.activeElement?.tagName
+        if (tag !== 'TEXTAREA' && tag !== 'SELECT') {
+          e.preventDefault()
+          document.getElementById('log-modal-submit')?.click()
+        }
+      }
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
@@ -153,7 +163,7 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
             ? <button className="btn-primary" style={{ background: 'var(--yellow)', color: '#000' }} onClick={handleJump}>Jump to existing post</button>
             : <button className="btn-primary" disabled={!canSubmit}
                 style={isContributor ? { background: 'var(--cyan)', boxShadow: 'var(--win-out), 0 0 12px rgba(0,229,255,0.3)' } : {}}
-                onClick={handleSubmit}>
+                id="log-modal-submit" onClick={handleSubmit}>
                 {isContributor ? 'SUBMIT FOR REVIEW' : 'LOG POST'}
               </button>
           }

@@ -23,10 +23,26 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
   }, [post?.id, isOpen])
 
   useEffect(() => {
-    function onKey(e) { if (e.key === 'Escape') onClose() }
+    function onKey(e) {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        const updates = {
+          show, mediaType, episodeNumber,
+          clipIndex: mediaType === 'Clip' ? ((() => {
+            const count = posts.filter(p =>
+              p.id !== post.id && p.show === show &&
+              p.mediaType === 'Clip' && p.episodeNumber === episodeNumber
+            ).length
+            return count === 0 ? 'Clip' : 'Clip' + (count + 1)
+          })()) : '',
+        }
+        onSave(post.id, updates)
+        onClose()
+      }
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, onSave, show, mediaType, episodeNumber, post, posts])
 
   const clipIndex = useMemo(() => {
     if (!post || mediaType !== 'Clip') return ''
