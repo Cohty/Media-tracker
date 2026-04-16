@@ -125,9 +125,16 @@ export async function onRequestPost({ request, env }) {
     const data = await res.json()
     let posts = data?.data || []
 
-    // Filter by platform
+    // Filter by platform — LinkedIn requires special handling
     if (filterPlatforms.length > 0) {
-      posts = posts.filter(p => filterPlatforms.includes(detectPlatform(p.perma_link || p.permalink || '')))
+      posts = posts.filter(p => {
+        const plat = detectPlatform(p.perma_link || p.permalink || '')
+        if (!filterPlatforms.includes(plat)) return false
+        // LinkedIn posts are only imported if they are Editorials (cross-posted with Instagram)
+        // OR if they are episode content (has episode tag mapped to a show)
+        // Standalone LinkedIn-only posts are excluded — handled after cross-post detection
+        return true
+      })
     } else if (videoOnly) {
       posts = posts.filter(p => {
         const u = (p.perma_link || p.permalink || '').toLowerCase()
@@ -140,6 +147,29 @@ export async function onRequestPost({ request, env }) {
     page++
   } while (page <= Math.min(totalPages, 50))
 
+  // For Editorial detection: group LinkedIn posts by URL-normalized content
+  // A true Editorial = same article URL posted to BOTH Instagram AND LinkedIn within 48hrs
+  // Build a set of LinkedIn post URLs that have a matching Instagram post (same tag, close timing)
+  const editorialLinkedInUrls = new Set()
+  if (filterPlatforms.includes('LinkedIn') && filterPlatforms.includes('Instagram')) {
+    const igPosts = allPosts.filter(p => detectPlatform(p.perma_link||'') === 'Instagram')
+    const liPosts = allPosts.filter(p => detectPlatform(p.perma_link||'') === 'LinkedIn')
+
+    liPosts.forEach(liPost => {
+      const liTags = new Set((liPost.internal?.tags||[]).map(t=>t.id))
+      const liTime = new Date(liPost.created_time||0).getTime()
+      // Find an Instagram post with the same Editorials tag posted within 48 hrs
+      const match = igPosts.find(igPost => {
+        const igTags = (igPost.internal?.tags||[]).map(t=>t.id)
+        const igTime = new Date(igPost.created_time||0).getTime()
+        const sharedTag = igTags.some(t => liTags.has(t))
+        const withinWindow = Math.abs(liTime - igTime) < 48 * 60 * 60 * 1000
+        return sharedTag && withinWindow
+      })
+      if (match) editorialLinkedInUrls.add(normalizeUrl(liPost.perma_link||''))
+    })
+  }
+
   // Insert into D1
   let imported = 0, skipped = 0, tagged = 0, unassigned = 0
   const byShow = {}
@@ -150,6 +180,18 @@ export async function onRequestPost({ request, env }) {
 
     const normUrl = normalizeUrl(permalink)
     if (existingUrls.has(normUrl)) { skipped++; continue }
+
+    // Skip standalone LinkedIn posts — only allow LinkedIn if it's a cross-posted Editorial
+    // OR if it's mapped to an episode show (not Unassigned)
+    const platform = detectPlatform(permalink)
+    if (platform === 'LinkedIn') {
+      const normUrl = normalizeUrl(permalink)
+      const isEditorialCrossPost = editorialLinkedInUrls.has(normUrl)
+      // Check if it has an episode tag (will be mapped to a show)
+      const postTagIds2 = (sp.internal?.tags||[]).map(t=>t.id)
+      const hasEpisodeTag = postTagIds2.some(tid => tagMap[tid]?.type === 'episode')
+      if (!isEditorialCrossPost && !hasEpisodeTag) { skipped++; continue }
+    }
 
     // Determine show + episode from Sprout tags
     const postTagIds = (sp.internal?.tags || []).map(t => t.id)
@@ -173,7 +215,6 @@ export async function onRequestPost({ request, env }) {
     if (matchType) tagged++
     else unassigned++
 
-    const platform = detectPlatform(permalink)
     const isEditorial = showName === 'Editorials'
     const mediaType = resolveMediaType(platform, isEditorial)
     const text = (sp.text || '').replace(/https?:\/\/\S+/g, '').trim()
