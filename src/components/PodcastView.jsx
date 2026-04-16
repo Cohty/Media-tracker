@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 
 // Only track these shows
 const TRACKED_SHOWS = ['The Crypto Beat', 'Layer One', 'The Big Brain Podcast']
@@ -55,7 +55,7 @@ function TrendChart({ data, chartType }) {
       {tooltip && (
         <div style={{
           position: 'absolute', zIndex: 10, pointerEvents: 'none',
-          left: Math.min(tooltip.svgX + 12, 700), top: 8,
+          left: `${Math.min(tooltip.svgX / 900 * 100, 65)}%`, top: 8,
           background: '#0f0c1e', border: '1px solid rgba(180,78,255,0.5)',
           borderRadius: 4, padding: '8px 12px', fontFamily: 'DM Mono', fontSize: 10,
           boxShadow: '0 4px 16px rgba(0,0,0,0.6)', minWidth: 160,
@@ -90,9 +90,10 @@ function TrendChart({ data, chartType }) {
             const bh = ((p.downloads || 0) / maxVal) * ch
             return (
               <g key={i}
-                onMouseEnter={e => {
+                onMouseMove={e => {
                   const rect = e.currentTarget.closest('svg').getBoundingClientRect()
-                  setTooltip({ ...p, svgX: e.clientX - rect.left })
+                  const scaleX = 900 / rect.width
+                  setTooltip({ ...p, svgX: (e.clientX - rect.left) * scaleX })
                 }}>
                 <rect x={p.x - bw/2} y={padT+ch-bh} width={bw} height={Math.max(bh,0)}
                   fill="#b44eff" opacity={0.8} rx={1} />
@@ -176,15 +177,44 @@ export default function PodcastView() {
     const start = new Date(today); start.setDate(today.getDate() - parseInt(range))
     const fmt = d => `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`
 
+    if (selectedShow === 'all') {
+      // Fetch all shows and combine
+      Promise.all(shows.map(show =>
+        Promise.all([
+          transistorFetch(`analytics/${show.id}`, { start_date: fmt(start), end_date: fmt(today) }),
+          transistorFetch(`analytics/${show.id}/episodes`, { start_date: fmt(start), end_date: fmt(today) }),
+        ]).then(([showData, epData]) => ({
+          showTitle: show.attributes.title,
+          downloads: showData.data?.attributes?.downloads || [],
+          episodes: (epData.data?.attributes?.episodes || []).map(ep => ({
+            ...ep, showTitle: show.attributes.title,
+          })),
+        }))
+      )).then(results => {
+        // Merge daily downloads across all shows
+        const dateMap = {}
+        results.forEach(r => {
+          r.downloads.forEach(d => {
+            dateMap[d.date] = (dateMap[d.date] || 0) + d.downloads
+          })
+        })
+        const merged = Object.entries(dateMap).sort().map(([date, downloads]) => ({ date, downloads }))
+        setShowAnalytics({ downloads: merged })
+        setEpisodeAnalytics(results.flatMap(r => r.episodes))
+        setLoadingAnalytics(false)
+      }).catch(() => setLoadingAnalytics(false))
+      return
+    }
+
     Promise.all([
       transistorFetch(`analytics/${selectedShow.id}`, { start_date: fmt(start), end_date: fmt(today) }),
       transistorFetch(`analytics/${selectedShow.id}/episodes`, { start_date: fmt(start), end_date: fmt(today) }),
     ]).then(([showData, epData]) => {
       setShowAnalytics(showData.data?.attributes || null)
-      setEpisodeAnalytics(epData.data?.attributes?.episodes || [])
+      setEpisodeAnalytics((epData.data?.attributes?.episodes || []).map(ep => ({ ...ep, showTitle: selectedShow.attributes.title })))
       setLoadingAnalytics(false)
     }).catch(() => setLoadingAnalytics(false))
-  }, [selectedShow, range])
+  }, [selectedShow, range, shows])
 
   const trendData = useMemo(() =>
     (showAnalytics?.downloads || []).map(d => ({ date: d.date, downloads: d.downloads })),
@@ -203,8 +233,9 @@ export default function PodcastView() {
   const totalDownloads = trendData.reduce((s, d) => s + d.downloads, 0)
   const avgPerEp = episodeTotals.length > 0 ? Math.round(totalDownloads / episodeTotals.length) : 0
   const topEp = episodeTotals[0]
-  const showName = selectedShow?.attributes?.title || ''
-  const showColor = Object.entries(SHOW_COLORS).find(([k]) => showName.includes(k) || k.includes(showName))?.[1] || '#b44eff'
+  const isAllShows = selectedShow === 'all'
+  const showName = isAllShows ? 'All Shows' : (selectedShow?.attributes?.title || '')
+  const showColor = isAllShows ? '#b44eff' : (Object.entries(SHOW_COLORS).find(([k]) => showName.includes(k) || k.includes(showName))?.[1] || '#b44eff')
 
   if (status === 'loading') return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200,
@@ -235,6 +266,12 @@ export default function PodcastView() {
           <span className="win95-title">🎙 PODCAST SHOWS</span>
         </div>
         <div className="podcast-shows-row">
+          <button
+            className={`podcast-show-btn${selectedShow === 'all' ? ' active' : ''}`}
+            style={selectedShow === 'all' ? { color: 'var(--purple)', borderColor: 'rgba(180,78,255,0.5)', boxShadow: 'var(--win-out), 0 0 8px rgba(180,78,255,0.3)' } : {}}
+            onClick={() => setSelectedShow('all')}>
+            All Shows
+          </button>
           {shows.map(show => (
             <button key={show.id}
               className={`podcast-show-btn${selectedShow?.id === show.id ? ' active' : ''}`}
@@ -330,14 +367,16 @@ export default function PodcastView() {
                     <div className="analytics-cell-text">{ep.title}</div>
                   </div>
                   <div className="analytics-cell">
-                    <span style={{
-                      fontFamily:'DM Mono', fontSize:9, padding:'2px 8px', borderRadius:2,
-                      background: (showColor || '#b44eff') + '18',
-                      color: showColor || '#b44eff',
-                      border: `1px solid ${(showColor || '#b44eff')}44`,
-                    }}>
-                      {showName}
-                    </span>
+                    {(() => {
+                      const epShow = ep.showTitle || showName
+                      const epColor = Object.entries(SHOW_COLORS).find(([k]) => epShow.includes(k) || k.includes(epShow))?.[1] || '#b44eff'
+                      return (
+                        <span style={{
+                          fontFamily:'DM Mono', fontSize:9, padding:'2px 8px', borderRadius:2,
+                          background: epColor + '18', color: epColor, border: `1px solid ${epColor}44`,
+                        }}>{epShow}</span>
+                      )
+                    })()}
                   </div>
                   <div className="analytics-cell">
                     <div style={{ fontFamily:'VT323', fontSize:22, color:'var(--purple)', textShadow:'0 0 8px var(--purple)', lineHeight:1 }}>
