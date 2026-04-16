@@ -34,7 +34,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
   const [syncMsg, setSyncMsg] = useState('')
   const [lastSynced, setLastSynced] = useState(null)
 
-  const { status: sproutStatus, syncPostStats } = useSprout()
+  const { profileIds, status: sproutStatus, syncPostStats } = useSprout()
 
   function toggleMetric(id) {
     setActiveMetrics(prev =>
@@ -88,7 +88,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
   }
 
   const hasChartData = chartData.length > 0
-  const sproutReady = !['no-key', 'idle'].includes(sproutStatus)
+  const sproutReady = profileIds.length > 0
 
   return (
     <div className="analytics-wrapper">

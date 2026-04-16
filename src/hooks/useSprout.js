@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 async function sproutGet(path) {
   const res = await fetch(`/api/sprout?path=${encodeURIComponent(path)}`)
   const data = await res.json()
-  if (!res.ok) throw new Error(data?.message || data?.error || `Sprout API ${res.status}`)
+  if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
   return data
 }
 
@@ -14,85 +14,117 @@ async function sproutPost(path, body) {
     body: JSON.stringify(body),
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data?.message || data?.error || `Sprout API ${res.status}`)
+  if (!res.ok) {
+    // Sprout returns errors as array of strings in data.error or data.errors
+    const msg = Array.isArray(data?.error) ? data.error.join('. ')
+      : Array.isArray(data?.errors) ? data.errors.map(e => e.detail || e).join('. ')
+      : data?.message || data?.error || `HTTP ${res.status}`
+    throw new Error(msg)
+  }
   return data
 }
 
-function extractProfiles(data) {
-  // Try every known response shape Sprout uses
-  if (Array.isArray(data?.data)) {
-    // Shape: { data: [ { id, attributes: { profiles: [...] } } ] }
-    const nested = data.data[0]?.attributes?.profiles
-    if (Array.isArray(nested) && nested.length) return nested
-    // Shape: { data: [ {id, network_type, ...}, ... ] }  (flat array of profiles)
-    if (data.data[0]?.network_type || data.data[0]?.type === 'profile') return data.data
+function extractProfileIds(data) {
+  // Try every known shape Sprout returns for profiles
+  const candidates = [
+    data?.data,                           // flat array
+    data?.data?.[0]?.attributes?.profiles,
+    data?.data?.profiles,
+    data?.profiles,
+  ]
+  for (const c of candidates) {
+    if (Array.isArray(c) && c.length > 0) {
+      // Each profile has an `id` field (numeric)
+      const ids = c.map(p => p.id || p.customer_profile_id).filter(Boolean)
+      if (ids.length > 0) return ids
+    }
   }
-  // Shape: { data: { profiles: [...] } }
-  if (Array.isArray(data?.data?.profiles)) return data.data.profiles
-  // Shape: { profiles: [...] }
-  if (Array.isArray(data?.profiles)) return data.profiles
   return []
 }
 
 export function useSprout() {
-  const [profiles, setProfiles] = useState([])
-  const [status, setStatus] = useState('idle')
+  const [profileIds, setProfileIds] = useState([])
+  const [status, setStatus] = useState('loading')
   const [error, setError] = useState('')
 
   useEffect(() => {
-    // Try the dedicated profiles endpoint first, fall back to metadata/customer
+    // Try the profiles endpoint; if it fails try metadata/customer
     sproutGet('metadata/customer/profiles')
       .then(data => {
-        const found = extractProfiles(data)
-        if (found.length) { setProfiles(found); setStatus('ready'); return }
-        // fallback
-        return sproutGet('metadata/customer').then(d2 => {
-          const found2 = extractProfiles(d2)
-          setProfiles(found2)
-          setStatus(found2.length ? 'ready' : 'no-profiles')
-        })
+        const ids = extractProfileIds(data)
+        setProfileIds(ids)
+        setStatus(ids.length > 0 ? 'ready' : 'no-profiles')
       })
-      .catch(err => {
-        if (err.message.includes('503') || err.message.includes('not configured')) {
-          setStatus('no-key')
-        } else {
-          setStatus('error')
-          setError(err.message)
-        }
-      })
+      .catch(() =>
+        sproutGet('metadata/customer')
+          .then(data => {
+            const ids = extractProfileIds(data)
+            setProfileIds(ids)
+            setStatus(ids.length > 0 ? 'ready' : 'no-profiles')
+          })
+          .catch(err => {
+            if (err.message.includes('503') || err.message.includes('not configured')) {
+              setStatus('no-key')
+            } else {
+              setStatus('error')
+              setError(err.message)
+            }
+          })
+      )
   }, [])
 
   async function syncPostStats(posts, onProgress) {
-    // If we have profiles, use their IDs; otherwise sync without a profile filter
+    if (profileIds.length === 0) {
+      throw new Error('Could not load Sprout profile IDs. Check your SPROUT_CUSTOMER_ID env var and that your profiles are connected in Sprout.')
+    }
+
+    // Sprout requires created_time and customer_profile_id as mandatory filters
     const now = new Date()
     const start = new Date(now)
     start.setDate(now.getDate() - 90)
-    const fmt = d => d.toISOString().split('.')[0]
 
-    const filters = profiles.length > 0
-      ? [{ field: 'customer_profile_id', operator: 'in', value: profiles.map(p => p.id) }]
-      : []
+    const fmt = d => {
+      // Sprout wants YYYY-MM-DDThh:mm:ss format
+      return d.toISOString().replace('Z', '').split('.')[0]
+    }
 
     const payload = {
-      ...(filters.length ? { filters } : {}),
-      metrics: ['impressions', 'engagements', 'video_views', 'likes', 'comments', 'shares', 'clicks', 'reach'],
-      fields: ['post_id', 'text', 'created_time', 'permalink', 'post_type', 'network_type'],
-      start_time: fmt(start),
-      end_time: fmt(now),
+      filters: [
+        {
+          field: 'customer_profile_id',
+          operator: 'in',
+          value: profileIds,
+        },
+        {
+          field: 'created_time',
+          operator: 'between',
+          value: [fmt(start), fmt(now)],
+        },
+      ],
+      metrics: [
+        'impressions',
+        'engagements',
+        'video_views',
+        'likes',
+        'comments',
+        'shares',
+      ],
       page: 1,
       per_page: 200,
     }
 
-    onProgress?.('Fetching Sprout post data…')
+    onProgress?.('Fetching post stats from Sprout…')
     const data = await sproutPost('analytics/posts', payload)
     const sproutPosts = data?.data || []
     onProgress?.(`Got ${sproutPosts.length} posts from Sprout, matching…`)
 
-    // Build URL → stats map
+    // Build a permalink → stats lookup
     const statsMap = {}
     sproutPosts.forEach(sp => {
-      const permalink = sp.attributes?.permalink || sp.permalink || ''
-      const metrics = sp.attributes?.metrics || sp.metrics || {}
+      const attrs = sp.attributes || sp
+      const permalink = attrs?.permalink || attrs?.perma_link || attrs?.url || ''
+      const metrics = attrs?.metrics || {}
+
       if (permalink) {
         statsMap[permalink.toLowerCase().trim()] = {
           views:       String(metrics.video_views ?? metrics.reach ?? ''),
@@ -103,17 +135,18 @@ export function useSprout() {
       }
     })
 
-    // Match our posts by URL
+    // Match our stored posts by URL
     const results = []
     for (const post of posts) {
       const url = (post.url || '').toLowerCase().trim()
-      const match = statsMap[url]
-      if (match) results.push({ id: post.id, stats: match })
+      if (statsMap[url]) {
+        results.push({ id: post.id, stats: statsMap[url] })
+      }
     }
 
     onProgress?.(`Matched ${results.length} of ${posts.length} posts`)
     return results
   }
 
-  return { profiles, status, error, syncPostStats }
+  return { profileIds, status, error, syncPostStats }
 }
