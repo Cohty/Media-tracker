@@ -2,9 +2,11 @@
 // This allows all operations while we set up proper auth separately
 
 export function getUser(request, env) {
-  const email = request.headers.get('cf-access-authenticated-user-email') || 'admin'
+  const email = request.headers.get('cf-access-authenticated-user-email') || ''
+  // If no CF Access header, we're running without auth middleware → treat as admin
+  if (!email) return { email: 'admin', isAdmin: true }
   const adminEmails = (env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
-  const isAdmin = !env.ADMIN_EMAIL || adminEmails.includes(email.toLowerCase())
+  const isAdmin = adminEmails.includes(email.toLowerCase())
   return { email, isAdmin }
 }
 
