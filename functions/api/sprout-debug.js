@@ -1,5 +1,6 @@
 const CORS = { 'Content-Type': 'application/json' }
 const PROFILE_ID = 7399621
+const ALL_IDS = [7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559]
 const BASE_URL = 'https://api.sproutsocial.com/v1'
 
 export async function onRequestGet({ request, env }) {
@@ -28,43 +29,49 @@ export async function onRequestGet({ request, env }) {
     }
   }
 
-  // CONFIRMED: filters is array of strings, created_time:between:X,Y works
-  // NEED TO FIND: correct customer_profile_id string format
-
-  await test('eq operator', {
-    filters: [`customer_profile_id:eq:${PROFILE_ID}`, dateFilter],
+  // Key hypothesis: customer_profile_id is a TOP-LEVEL field, not inside filters[]
+  await test('profile top-level array + date in filters', {
+    customer_profile_id: ALL_IDS,
+    filters: [dateFilter],
     metrics: ['impressions'], page: 1, per_page: 5,
   })
 
-  await test('no operator', {
-    filters: [`customer_profile_id:${PROFILE_ID}`, dateFilter],
+  await test('profile top-level single + date in filters', {
+    customer_profile_id: PROFILE_ID,
+    filters: [dateFilter],
     metrics: ['impressions'], page: 1, per_page: 5,
   })
 
-  await test('just the ID as string', {
-    filters: [String(PROFILE_ID), dateFilter],
+  await test('profile_id (no customer_) + date in filters', {
+    profile_id: ALL_IDS,
+    filters: [dateFilter],
     metrics: ['impressions'], page: 1, per_page: 5,
   })
 
-  await test('in with pipe separator', {
-    filters: [`customer_profile_id:in:${PROFILE_ID}|7399622`, dateFilter],
+  // Maybe profile IDs go directly into filters array as integers
+  await test('IDs as integers in filters array', {
+    filters: [PROFILE_ID, dateFilter],
     metrics: ['impressions'], page: 1, per_page: 5,
   })
 
-  await test('in with brackets', {
-    filters: [`customer_profile_id:in:[${PROFILE_ID}]`, dateFilter],
+  // Maybe the correct filter format includes the operator differently
+  await test('customer_profile_id:between format', {
+    filters: [`customer_profile_id:between:${PROFILE_ID},${PROFILE_ID}`, dateFilter],
     metrics: ['impressions'], page: 1, per_page: 5,
   })
 
-  await test('equals sign format', {
-    filters: [`customer_profile_id=${PROFILE_ID}`, dateFilter],
+  // Try without any date filter - maybe date goes elsewhere
+  await test('profile in filters, dates top-level', {
+    filters: [`customer_profile_id:in:${PROFILE_ID}`],
+    start_time: s,
+    end_time: e,
     metrics: ['impressions'], page: 1, per_page: 5,
   })
 
-  // Try all profile IDs at once with comma
-  const allIds = '7399621,7399622,7399624,7399629,7399638,7399761,7400399,7400657,7407559'
-  await test('in with all IDs comma-separated', {
-    filters: [`customer_profile_id:in:${allIds}`, dateFilter],
+  // Maybe it needs the field name from the docs exactly
+  await test('customer_profile_ids plural', {
+    customer_profile_ids: ALL_IDS,
+    filters: [dateFilter],
     metrics: ['impressions'], page: 1, per_page: 5,
   })
 
