@@ -795,3 +795,26 @@ body {
 }
 .sprout-import-btn:hover { background: rgba(57,255,140,0.14); }
 .sprout-import-btn:active { box-shadow: var(--win-in); }
+
+/* ── TAG MAPPING ROWS ── */
+.tag-mapping-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 5px 8px;
+  margin-bottom: 4px; box-shadow: var(--win-in);
+}
+.tag-mapping-name {
+  fontFamily: 'DM Mono'; font-size: 10px; color: var(--text);
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: 'DM Mono', monospace;
+}
+.tag-mapping-select {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
+  padding: 3px 6px; font-family: 'DM Mono', monospace; font-size: 9px;
+  color: var(--cyan); outline: none; cursor: pointer; flex-shrink: 0;
+}
+
+/* ── UNASSIGNED COLUMN ── */
+.column[data-unassigned] .col-titlebar {
+  background: linear-gradient(90deg, #1a1530, #2a2040) !important;
+}

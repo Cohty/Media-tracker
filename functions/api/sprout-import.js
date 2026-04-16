@@ -1,40 +1,71 @@
 const CORS = { 'Content-Type': 'application/json' }
 const PROFILE_IDS = [7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559]
-const VIDEO_POST_TYPES = 'YOUTUBE_VIDEO,TIKTOK_VIDEO,INSTAGRAM_VIDEO,INSTAGRAM_REEL,FACEBOOK_VIDEO'
+
+// Keywords to auto-match Sprout tags → your shows
+const SHOW_KEYWORDS = {
+  'The Crypto Beat':       ['crypto beat', 'cryptobeat', 'crypto-beat'],
+  'The Big Brain Podcast': ['big brain', 'bigbrain', 'big brain podcast'],
+  'Layer One':             ['layer one', 'layer 1', 'layerone', 'layer-one'],
+  'The White Papers':      ['white papers', 'whitepapers', 'white-papers'],
+  'Standalones':           ['standalone', 'standalones'],
+}
+
+function matchTagToShow(tagText) {
+  const t = (tagText || '').toLowerCase().trim()
+  for (const [show, keywords] of Object.entries(SHOW_KEYWORDS)) {
+    if (keywords.some(k => t.includes(k) || k.includes(t))) return show
+  }
+  return null
+}
 
 export async function onRequestPost({ request, env }) {
   const token = env.SPROUT_API_TOKEN
   const customerId = env.SPROUT_CUSTOMER_ID
   if (!token || !customerId) return new Response(JSON.stringify({ error: 'Sprout not configured' }), { status: 503, headers: CORS })
 
-  const { days = 365, defaultShow = 'Standalones', videoOnly = true, tagMappings = [], useTagMapping = false }
+  const { days = 365, videoOnly = true, tagMappings = [], useTagMapping = true }
     = await request.json().catch(() => ({}))
 
   const now = new Date()
   const start = new Date(now); start.setDate(now.getDate() - Number(days))
   const fmt = d => d.toISOString().split('.')[0]
-
   const auth = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' }
 
-  // Build tag_id → show lookup
+  // 1. Load Sprout tags and build tag_id → show map
   const tagToShow = {}
-  tagMappings.forEach(({ tagId, showName }) => { tagToShow[tagId] = showName })
 
-  // Get existing URLs
+  // First apply manual mappings from modal
+  tagMappings.forEach(({ tagId, showName }) => {
+    if (showName && showName !== 'skip') tagToShow[tagId] = showName
+  })
+
+  // Then auto-match any unmapped tags by keyword
+  try {
+    const tagRes = await fetch(`https://api.sproutsocial.com/v1/${customerId}/metadata/customer/tags`, { headers: auth })
+    if (tagRes.ok) {
+      const tagData = await tagRes.json()
+      const tags = tagData?.data || []
+      tags.forEach(tag => {
+        if (tagToShow[tag.tag_id]) return // already manually mapped
+        const match = matchTagToShow(tag.text)
+        if (match) tagToShow[tag.tag_id] = match
+      })
+    }
+  } catch {}
+
+  // 2. Get existing URLs to avoid duplicates
   const { results: existing } = await env.DB.prepare('SELECT url FROM posts').all()
   const existingUrls = new Set(existing.map(r => normalizeUrl(r.url)))
 
-  // Build filters
-  const baseFilters = [
-    `customer_profile_id.eq(${PROFILE_IDS.join(', ')})`,
-    `created_time.in(${fmt(start)}..${fmt(now)})`,
-  ]
-
+  // 3. Fetch posts from Sprout
   let allPosts = [], page = 1, totalPages = 1
 
   do {
     const payload = {
-      filters: baseFilters,
+      filters: [
+        `customer_profile_id.eq(${PROFILE_IDS.join(', ')})`,
+        `created_time.in(${fmt(start)}..${fmt(now)})`,
+      ],
       fields: ['perma_link', 'created_time', 'text', 'post_type', 'internal.tags.id'],
       metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.likes'],
       page, limit: 200,
@@ -50,8 +81,6 @@ export async function onRequestPost({ request, env }) {
 
     const data = await res.json()
     let posts = data?.data || []
-
-    // Filter to video if requested
     if (videoOnly) posts = posts.filter(p => isVideoUrl(p.perma_link || p.permalink || ''))
 
     allPosts = allPosts.concat(posts)
@@ -59,7 +88,8 @@ export async function onRequestPost({ request, env }) {
     page++
   } while (page <= Math.min(totalPages, 50))
 
-  let imported = 0, skipped = 0, tagged = 0
+  // 4. Insert posts into D1
+  let imported = 0, skipped = 0, tagged = 0, unassigned = 0
 
   for (const sp of allPosts) {
     const permalink = sp.perma_link || sp.permalink || ''
@@ -67,14 +97,13 @@ export async function onRequestPost({ request, env }) {
     const normUrl = normalizeUrl(permalink)
     if (existingUrls.has(normUrl)) { skipped++; continue }
 
-    // Determine show via tag mapping
-    let showName = defaultShow
-    if (useTagMapping && tagMappings.length > 0) {
-      const postTagIds = (sp.internal?.tags || []).map(t => t.id)
-      for (const tagId of postTagIds) {
-        if (tagToShow[tagId]) { showName = tagToShow[tagId]; tagged++; break }
-      }
+    // Determine show from tags
+    const postTagIds = (sp.internal?.tags || []).map(t => t.id)
+    let showName = 'Unassigned'
+    for (const tagId of postTagIds) {
+      if (tagToShow[tagId]) { showName = tagToShow[tagId]; tagged++; break }
     }
+    if (showName === 'Unassigned') unassigned++
 
     const platform = detectPlatformFromUrl(permalink)
     const text = (sp.text || '').replace(/https?:\/\/\S+/g, '').trim()
@@ -102,7 +131,7 @@ export async function onRequestPost({ request, env }) {
     } catch { skipped++ }
   }
 
-  return new Response(JSON.stringify({ ok: true, fetched: allPosts.length, imported, skipped, tagged }), { headers: CORS })
+  return new Response(JSON.stringify({ ok: true, fetched: allPosts.length, imported, skipped, tagged, unassigned }), { headers: CORS })
 }
 
 function isVideoUrl(url) {

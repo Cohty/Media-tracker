@@ -6,6 +6,18 @@ export const SHOWS = [
   { name: 'Standalones',           hex: '#b44eff', bg: '#1a0030', tc: '#b44eff' },
 ]
 
+// Unassigned is a virtual column — not a real show, just a holding area
+export const UNASSIGNED = { name: 'Unassigned', hex: '#4a4168', bg: '#0f0c1e', tc: '#4a4168' }
+
+// Keywords that map to each show — used for auto-matching Sprout tags
+export const SHOW_KEYWORDS = {
+  'The Crypto Beat':       ['crypto beat', 'cryptobeat', 'the crypto beat'],
+  'The Big Brain Podcast': ['big brain', 'bigbrain', 'big brain podcast'],
+  'Layer One':             ['layer one', 'layer 1', 'layerone'],
+  'The White Papers':      ['white papers', 'whitepapers', 'the white papers'],
+  'Standalones':           ['standalone', 'standalones'],
+}
+
 export const PLATFORMS = {
   YouTube:   { color: '#ff4444', bg: 'rgba(255,68,68,0.12)',   pb: 'rgba(255,68,68,0.3)' },
   X:         { color: '#c8c4e0', bg: 'rgba(200,196,224,0.08)', pb: 'rgba(200,196,224,0.2)' },
@@ -33,7 +45,14 @@ export async function fetchYTTitle(url) {
     if (!res.ok) return ''
     const d = await res.json()
     return d.title || ''
-  } catch {
-    return ''
+  } catch { return '' }
+}
+
+// Match a tag text to one of our shows
+export function matchTagToShow(tagText) {
+  const t = tagText.toLowerCase().trim()
+  for (const [show, keywords] of Object.entries(SHOW_KEYWORDS)) {
+    if (keywords.some(k => t.includes(k) || k.includes(t))) return show
   }
+  return null
 }
