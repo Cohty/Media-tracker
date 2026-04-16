@@ -1,7 +1,6 @@
 const CORS = { 'Content-Type': 'application/json' }
 const PROFILE_IDS = [7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559]
 
-// Collection name → Show name mapping (server-side mirror of constants.js)
 const COLLECTION_TO_SHOW = {
   'the crypto beat': 'The Crypto Beat', 'cryptobeat': 'The Crypto Beat',
   'the big brain podcast': 'The Big Brain Podcast', 'big brain podcast': 'The Big Brain Podcast', 'big brain': 'The Big Brain Podcast',
@@ -9,13 +8,10 @@ const COLLECTION_TO_SHOW = {
   'the white papers': 'The White Papers', 'white papers': 'The White Papers',
   'standalones': 'Standalones', 'standalone': 'Standalones',
   'editorials': 'Editorials', 'editorial': 'Editorials',
-  'newsroom clips': 'Standalones', 'around the block': 'Standalones', 'the starting block': 'Standalones',
-  'cryptoiq': 'Standalones',
+  'newsroom clips': 'Standalones', 'around the block': 'Standalones',
+  'the starting block': 'Standalones', 'cryptoiq': 'Standalones',
 }
 
-// Tag prefixes → show + episode extraction
-// "TCB 73" → The Crypto Beat, ep 73
-// "L1 01"  → Layer One, ep 1
 const TAG_PREFIXES = [
   { prefix: 'tcb', show: 'The Crypto Beat' },
   { prefix: 'bbp', show: 'The Big Brain Podcast' },
@@ -28,45 +24,64 @@ const TAG_PREFIXES = [
 function parseTag(tagText) {
   if (!tagText) return null
   const t = tagText.trim()
-
-  // Try "PREFIX NNN" pattern
   for (const { prefix, show } of TAG_PREFIXES) {
-    const re = new RegExp(`^${prefix}\\s*(\\d+)$`, 'i')
-    const m = t.match(re)
+    const m = t.match(new RegExp(`^${prefix}\\s*(\\d+)$`, 'i'))
     if (m) return { show, episode: String(parseInt(m[1], 10)), type: 'episode' }
   }
-
-  // Try collection-level keyword
   const lower = t.toLowerCase()
   for (const [kw, show] of Object.entries(COLLECTION_TO_SHOW)) {
     if (lower === kw || lower.includes(kw)) return { show, episode: null, type: 'collection' }
   }
-
   return null
 }
 
-// Determine media type from platform and context
-function getMediaType(platform, postType, isEditorial) {
+function resolveMediaType(platform, isEditorial) {
   if (isEditorial) return 'Article'
   if (platform === 'YouTube' || platform === 'TikTok') return 'Full Episode'
   if (platform === 'LinkedIn' || platform === 'Instagram') return 'Article'
   return 'Full Episode'
 }
 
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url.toLowerCase().trim())
+    u.hostname = u.hostname.replace('x.com', 'twitter.com')
+    u.search = ''
+    return u.toString().replace(/\/$/, '')
+  } catch { return url.toLowerCase().trim() }
+}
+
+function detectPlatform(url) {
+  const u = url.toLowerCase()
+  if (u.includes('youtube.com') || u.includes('youtu.be')) return 'YouTube'
+  if (u.includes('x.com') || u.includes('twitter.com')) return 'X'
+  if (u.includes('linkedin.com')) return 'LinkedIn'
+  if (u.includes('instagram.com')) return 'Instagram'
+  if (u.includes('tiktok.com')) return 'TikTok'
+  return 'Other'
+}
+
 export async function onRequestPost({ request, env }) {
   const token = env.SPROUT_API_TOKEN
   const customerId = env.SPROUT_CUSTOMER_ID
-  if (!token || !customerId) return new Response(JSON.stringify({ error: 'Sprout not configured' }), { status: 503, headers: CORS })
+  if (!token || !customerId) {
+    return new Response(JSON.stringify({ error: 'Sprout not configured' }), { status: 503, headers: CORS })
+  }
 
   const { days = 365, videoOnly = false, filterPlatforms = [] } = await request.json().catch(() => ({}))
 
   const now = new Date()
-  const start = new Date(now); start.setDate(now.getDate() - Number(days))
+  const start = new Date(now)
+  start.setDate(now.getDate() - Number(days))
   const fmt = d => d.toISOString().split('.')[0]
-  const auth = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' }
+  const auth = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  }
 
-  // Load all Sprout tags and build tag_id → {show, episode} map
-  const tagMap = {} // tag_id → { show, episode }
+  // Load Sprout tags and build tag_id → {show, episode} map
+  const tagMap = {}
   try {
     const tagRes = await fetch(`https://api.sproutsocial.com/v1/${customerId}/metadata/customer/tags`, { headers: auth })
     if (tagRes.ok) {
@@ -79,11 +94,11 @@ export async function onRequestPost({ request, env }) {
     }
   } catch {}
 
-  // Get existing URLs
+  // Get existing URLs to avoid duplicates
   const { results: existing } = await env.DB.prepare('SELECT url FROM posts').all()
   const existingUrls = new Set(existing.map(r => normalizeUrl(r.url)))
 
-  // Fetch posts
+  // Fetch posts from Sprout (paginated)
   let allPosts = [], page = 1, totalPages = 1
   do {
     const payload = {
@@ -93,12 +108,14 @@ export async function onRequestPost({ request, env }) {
       ],
       fields: ['perma_link', 'created_time', 'text', 'post_type', 'internal.tags.id'],
       metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.likes'],
-      page, limit: 200,
+      page,
+      limit: 200,
     }
 
     const res = await fetch(`https://api.sproutsocial.com/v1/${customerId}/analytics/posts`, {
       method: 'POST', headers: auth, body: JSON.stringify(payload)
     })
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       return new Response(JSON.stringify({ error: err.error || `Sprout ${res.status}` }), { status: 400, headers: CORS })
@@ -107,12 +124,13 @@ export async function onRequestPost({ request, env }) {
     const data = await res.json()
     let posts = data?.data || []
 
-    // Filter by platform if requested
-    if (videoOnly) posts = posts.filter(p => isVideoUrl(p.perma_link || ''))
+    // Filter by platform
     if (filterPlatforms.length > 0) {
+      posts = posts.filter(p => filterPlatforms.includes(detectPlatform(p.perma_link || p.permalink || '')))
+    } else if (videoOnly) {
       posts = posts.filter(p => {
-        const plat = detectPlatformFromUrl(p.perma_link || '')
-        return filterPlatforms.includes(plat)
+        const u = (p.perma_link || p.permalink || '').toLowerCase()
+        return u.includes('youtube.com') || u.includes('youtu.be') || u.includes('tiktok.com')
       })
     }
 
@@ -128,31 +146,35 @@ export async function onRequestPost({ request, env }) {
   for (const sp of allPosts) {
     const permalink = sp.perma_link || sp.permalink || ''
     if (!permalink) { skipped++; continue }
+
     const normUrl = normalizeUrl(permalink)
     if (existingUrls.has(normUrl)) { skipped++; continue }
 
-    // Find best tag match — prefer episode-level tags over collection-level
+    // Determine show + episode from Sprout tags
     const postTagIds = (sp.internal?.tags || []).map(t => t.id)
-    let showName = 'Unassigned', episodeNumber = '', mediaType = 'Full Episode'
-    let matchType = null
+    let showName = 'Unassigned', episodeNumber = '', matchType = null
 
     for (const tagId of postTagIds) {
       const tm = tagMap[tagId]
       if (!tm) continue
       if (tm.type === 'episode') {
-        showName = tm.show; episodeNumber = tm.episode || ''; matchType = 'episode'; tagged++; break
+        showName = tm.show
+        episodeNumber = tm.episode || ''
+        matchType = 'episode'
+        break
       }
       if (tm.type === 'collection' && matchType !== 'episode') {
-        showName = tm.show; matchType = 'collection'
+        showName = tm.show
+        matchType = 'collection'
       }
     }
-    if (matchType === 'collection') tagged++
-    if (!matchType) unassigned++
 
-    const platform = detectPlatformFromUrl(permalink)
-    const isEditorial = showName === 'Editorials' || platform === 'LinkedIn' || platform === 'Instagram'
-    mediaType = getMediaType(platform, sp.post_type, isEditorial)
+    if (matchType) tagged++
+    else unassigned++
 
+    const platform = detectPlatform(permalink)
+    const isEditorial = showName === 'Editorials'
+    const mediaType = resolveMediaType(platform, isEditorial)
     const text = (sp.text || '').replace(/https?:\/\/\S+/g, '').trim()
     const title = text.length > 120 ? text.slice(0, 120) + '…' : text || permalink
     const createdAt = sp.created_time ? new Date(sp.created_time) : new Date()
@@ -180,29 +202,8 @@ export async function onRequestPost({ request, env }) {
     } catch { skipped++ }
   }
 
-  return new Response(JSON.stringify({ ok: true, fetched: allPosts.length, imported, skipped, tagged, unassigned, byShow }), { headers: CORS })
-}
-
-function isVideoUrl(url) {
-  const u = url.toLowerCase()
-  return u.includes('youtube.com') || u.includes('youtu.be') || u.includes('tiktok.com')
-}
-function normalizeUrl(url) {
-  try { const u = new URL(url.toLowerCase().trim()); u.hostname = u.hostname.replace('x.com','twitter.com'); u.search=''; return u.toString().replace(/\/$/,'') }
-  catch { return url.toLowerCase().trim() }
-}
-function detectPlatformFromUrl(url) {
-  const u = url.toLowerCase()
-  if (u.includes('youtube.com')||u.includes('youtu.be')) return 'YouTube'
-  if (u.includes('x.com')||u.includes('twitter.com')) return 'X'
-  if (u.includes('linkedin.com')) return 'LinkedIn'
-  if (u.includes('instagram.com')) return 'Instagram'
-  if (u.includes('tiktok.com')) return 'TikTok'
-  return 'Other'
-}
-function getMediaType(platform, postType, isEditorial) {
-  if (isEditorial) return 'Article'
-  if (platform === 'YouTube' || platform === 'TikTok') return 'Full Episode'
-  if (platform === 'LinkedIn' || platform === 'Instagram') return 'Article'
-  return 'Full Episode'
+  return new Response(
+    JSON.stringify({ ok: true, fetched: allPosts.length, imported, skipped, tagged, unassigned, byShow }),
+    { headers: CORS }
+  )
 }
