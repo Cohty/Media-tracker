@@ -750,3 +750,28 @@ body {
 }
 .logout-btn:hover { color: var(--pink); border-color: rgba(255,45,120,0.3); }
 .logout-btn:active { box-shadow: var(--win-in); }
+
+/* ── SPROUT SYNC ── */
+.sprout-sync-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'DM Mono'; font-size: 10px; letter-spacing: 0.5px;
+  padding: 6px 14px; border-radius: var(--radius); cursor: pointer;
+  background: rgba(57,255,140,0.08); border: 1px solid rgba(57,255,140,0.3);
+  color: var(--green); box-shadow: var(--win-out);
+  transition: background .15s, box-shadow .15s;
+}
+.sprout-sync-btn:hover:not(.disabled) { background: rgba(57,255,140,0.15); box-shadow: var(--win-out), 0 0 10px rgba(57,255,140,0.2); }
+.sprout-sync-btn:active:not(.disabled) { box-shadow: var(--win-in); }
+.sprout-sync-btn.syncing { opacity: .7; cursor: not-allowed; }
+.sprout-sync-btn.disabled { opacity: .35; cursor: not-allowed; border-color: var(--border); color: var(--text3); background: none; }
+.sprout-icon { font-size: 13px; }
+.sprout-sync-btn.syncing .sprout-icon { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sync-status {
+  font-family: 'DM Mono'; font-size: 9px; padding: 5px 8px;
+  border-radius: var(--radius); margin-top: 4px; letter-spacing: 0.3px;
+}
+.sync-status--syncing { color: var(--cyan); background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.2); }
+.sync-status--done    { color: var(--green); background: rgba(57,255,140,0.06); border: 1px solid rgba(57,255,140,0.2); }
+.sync-status--error   { color: var(--pink); background: rgba(255,45,120,0.06); border: 1px solid rgba(255,45,120,0.2); }

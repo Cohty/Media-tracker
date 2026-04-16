@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, Legend
 } from 'recharts'
 import { SHOWS, MEDIA_TYPES } from '../constants'
+import { useSprout } from '../hooks/useSprout'
 
 const METRICS = [
   { id: 'views',       label: 'Views',       color: '#00e5ff' },
@@ -29,6 +30,11 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
   const [filterShow, setFilterShow] = useState('all')
   const [filterType, setFilterType] = useState('all')
   const [activeMetrics, setActiveMetrics] = useState(['views', 'engagement', 'impressions'])
+  const [syncStatus, setSyncStatus] = useState(null) // null | 'syncing' | 'done' | 'error'
+  const [syncMsg, setSyncMsg] = useState('')
+  const [lastSynced, setLastSynced] = useState(null)
+
+  const { status: sproutStatus, syncPostStats } = useSprout()
 
   function toggleMetric(id) {
     setActiveMetrics(prev =>
@@ -56,6 +62,25 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
     [filteredPosts]
   )
 
+  async function handleSproutSync() {
+    setSyncStatus('syncing')
+    setSyncMsg('Connecting to Sprout Social…')
+    try {
+      const results = await syncPostStats(posts, msg => setSyncMsg(msg))
+      for (const { id, stats } of results) {
+        await onUpdatePost(id, { stats })
+      }
+      setLastSynced(new Date().toLocaleTimeString())
+      setSyncStatus('done')
+      setSyncMsg(`${results.length} posts synced from Sprout`)
+      setTimeout(() => setSyncStatus(null), 5000)
+    } catch (err) {
+      setSyncStatus('error')
+      setSyncMsg(`Sync failed: ${err.message}`)
+      setTimeout(() => setSyncStatus(null), 6000)
+    }
+  }
+
   function handleStatChange(postId, field, value) {
     const post = posts.find(p => p.id === postId)
     if (!post) return
@@ -63,12 +88,13 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
   }
 
   const hasChartData = chartData.length > 0
+  const sproutReady = sproutStatus === 'ready'
 
   return (
     <div className="analytics-wrapper">
       <div className="win95-window">
         <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001840, #003080)' }}>
-          <span className="win95-title">🔬 FILTERS</span>
+          <span className="win95-title">🔬 FILTERS & SYNC</span>
         </div>
         <div className="analytics-controls">
           <div className="filter-group">
@@ -100,6 +126,35 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
               ))}
             </div>
           </div>
+
+          {/* Sprout Sync Button */}
+          <div className="filter-group" style={{ marginLeft: 'auto', gap: 8 }}>
+            {lastSynced && (
+              <span style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--text3)' }}>
+                synced {lastSynced}
+              </span>
+            )}
+            <button
+              className={`sprout-sync-btn${syncStatus === 'syncing' ? ' syncing' : ''}${!sproutReady ? ' disabled' : ''}`}
+              onClick={sproutReady && syncStatus !== 'syncing' ? handleSproutSync : undefined}
+              title={!sproutReady ? 'Add SPROUT_API_TOKEN and SPROUT_CUSTOMER_ID in Cloudflare env vars' : 'Sync stats from Sprout Social'}
+            >
+              <span className="sprout-icon">⟳</span>
+              {syncStatus === 'syncing' ? 'SYNCING…' : 'SYNC SPROUT'}
+            </button>
+          </div>
+
+          <div style={{ width: '100%' }}>
+            {syncStatus && (
+              <div className={`sync-status sync-status--${syncStatus}`}>{syncMsg}</div>
+            )}
+            {!sproutReady && sproutStatus !== 'idle' && (
+              <div className="sync-status sync-status--error">
+                Sprout not connected — add SPROUT_API_TOKEN + SPROUT_CUSTOMER_ID in Cloudflare env vars
+              </div>
+            )}
+          </div>
+
           <div className="filter-meta">
             <span style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--text3)' }}>
               {filteredPosts.length} posts · {chartData.length} with stats
@@ -116,24 +171,18 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
           {!hasChartData ? (
             <div className="empty-analytics">
               <div style={{ fontSize: 28, marginBottom: 10 }}>📊</div>
-              <div>No stats yet — add views, engagement & impressions</div>
-              <div style={{ marginTop: 6, color: 'var(--text3)', fontSize: 9 }}>in the table below</div>
+              <div>No stats yet — sync from Sprout or add manually below</div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(180,78,255,0.08)" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: '#4a4168', fontSize: 9, fontFamily: 'DM Mono' }}
+                <XAxis dataKey="name" tick={{ fill: '#4a4168', fontSize: 9, fontFamily: 'DM Mono' }}
                   angle={-40} textAnchor="end" interval={0}
-                  axisLine={{ stroke: 'rgba(180,78,255,0.15)' }} tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: '#4a4168', fontSize: 9, fontFamily: 'DM Mono' }}
+                  axisLine={{ stroke: 'rgba(180,78,255,0.15)' }} tickLine={false} />
+                <YAxis tick={{ fill: '#4a4168', fontSize: 9, fontFamily: 'DM Mono' }}
                   axisLine={false} tickLine={false}
-                  tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}
-                />
+                  tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(180,78,255,0.05)' }} />
                 <Legend wrapperStyle={{ fontFamily: 'DM Mono', fontSize: 10, color: '#8b7eb8', paddingTop: 8 }} />
                 {activeMetrics.includes('views') && <Bar dataKey="views" name="Views" fill="#00e5ff" radius={[2,2,0,0]} maxBarSize={32} />}
@@ -147,7 +196,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
 
       <div className="win95-window">
         <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001a20, #003040)' }}>
-          <span className="win95-title">📋 POST STATS — click cells to edit</span>
+          <span className="win95-title">📋 POST STATS — synced from Sprout or edit manually</span>
         </div>
         <div className="analytics-table-wrap">
           <div className="analytics-table-header">
@@ -166,13 +215,12 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
                 <div className="analytics-cell">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div className="analytics-cell-text">{post.title}</div>
-                    <a
-                      href={post.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="analytics-link-btn"
-                      title={post.url}
-                    >↗</a>
+                    <a href={post.url} target="_blank" rel="noreferrer" className="analytics-link-btn" title={post.url}>↗</a>
+                    {post.stats?.lastSynced && (
+                      <span style={{ fontFamily: 'DM Mono', fontSize: 8, color: 'var(--green)', background: 'rgba(57,255,140,0.08)', border: '1px solid rgba(57,255,140,0.2)', padding: '1px 4px', borderRadius: 2 }}>
+                        sprout
+                      </span>
+                    )}
                   </div>
                   <div className="analytics-cell-sub">{post.date} · {post.platform}</div>
                 </div>
@@ -185,9 +233,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
                 </div>
                 {['views', 'engagement', 'impressions'].map(field => (
                   <div key={field} className="analytics-cell">
-                    <input
-                      type="number"
-                      className="stat-input"
+                    <input type="number" className="stat-input"
                       value={post.stats?.[field] ?? ''}
                       placeholder="—"
                       onChange={e => handleStatChange(post.id, field, e.target.value)}
