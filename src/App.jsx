@@ -14,8 +14,8 @@ import MovePostModal from './components/MovePostModal'
 import ReviewPanel from './components/ReviewPanel'
 
 export default function App() {
-  const { user, loading: userLoading } = useUser()
-  const { posts, loading: postsLoading, addPost, deletePost, updatePost, refetch } = usePosts()
+  const { user } = useUser()
+  const { posts, loading, addPost, deletePost, updatePost, refetch } = usePosts()
   const [modalOpen, setModalOpen] = useState(false)
   const [movingPost, setMovingPost] = useState(null)
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -26,16 +26,6 @@ export default function App() {
 
   const activeShowCount = SHOWS.filter(s => posts.some(p => p.show === s.name)).length
 
-  // Poll pending count for admin
-  useState(() => {
-    if (!user?.isAdmin) return
-    const fetchCount = () =>
-      fetch('/api/pending').then(r => r.json()).then(d => setPendingCount(Array.isArray(d) ? d.length : 0)).catch(() => {})
-    fetchCount()
-    const iv = setInterval(fetchCount, 30000)
-    return () => clearInterval(iv)
-  })
-
   function showToast(msg, type = 'info') {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 4000)
@@ -43,25 +33,17 @@ export default function App() {
 
   async function handleAddPost(data) {
     const status = await addPost(data)
-    if (status === 'pending_review') {
-      showToast('Post submitted for admin review', 'pending')
-    } else {
-      showToast('Post logged successfully', 'success')
-    }
+    showToast(status === 'pending_review' ? 'Post submitted for review' : 'Post logged', status === 'pending_review' ? 'pending' : 'success')
   }
 
   async function handleDeletePost(id) {
     const status = await deletePost(id)
-    if (status === 'pending_review') {
-      showToast('Deletion submitted for admin review', 'pending')
-    }
+    if (status === 'pending_review') showToast('Deletion submitted for review', 'pending')
   }
 
   async function handleUpdatePost(id, updates) {
     const status = await updatePost(id, updates)
-    if (status === 'pending_review') {
-      showToast('Edit submitted for admin review', 'pending')
-    }
+    if (status === 'pending_review') showToast('Edit submitted for review', 'pending')
   }
 
   const handleNavigateToPost = useCallback((postId) => {
@@ -70,7 +52,7 @@ export default function App() {
     setTimeout(() => setHighlightedPostId(null), 3000)
   }, [])
 
-  if (userLoading || postsLoading) {
+  if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 16 }}>
         <div style={{ fontFamily: 'Press Start 2P', fontSize: 10, color: 'var(--purple)', textShadow: '0 0 14px rgba(180,78,255,0.7)' }}>
@@ -93,40 +75,18 @@ export default function App() {
       />
       <StatsBar posts={posts} />
       <Nav activeView={activeView} onChangeView={setActiveView} />
-
       {activeView === 'board'     && <Board posts={posts} onDelete={handleDeletePost} onMove={setMovingPost} highlightedPostId={highlightedPostId} />}
       {activeView === 'calendar'  && <CalendarView posts={posts} />}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={handleUpdatePost} />}
       {activeView === 'podcast'   && <PodcastView />}
-
-      {toast && (
-        <div className={`toast toast--${toast.type}`}>
-          {toast.type === 'pending' && '⏳ '}
-          {toast.type === 'success' && '✓ '}
-          {toast.msg}
-        </div>
-      )}
-
-      <LogModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleAddPost}
-        onNavigateToPost={handleNavigateToPost}
-        posts={posts}
-        isContributor={!user?.isAdmin}
-      />
-      <MovePostModal
-        post={movingPost}
-        isOpen={!!movingPost}
-        onClose={() => setMovingPost(null)}
-        onSave={handleUpdatePost}
-        posts={posts}
-      />
+      {toast && <div className={`toast toast--${toast.type}`}>{toast.type === 'pending' ? '⏳ ' : '✓ '}{toast.msg}</div>}
+      <LogModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleAddPost}
+        onNavigateToPost={handleNavigateToPost} posts={posts} isContributor={!user?.isAdmin} />
+      <MovePostModal post={movingPost} isOpen={!!movingPost} onClose={() => setMovingPost(null)}
+        onSave={handleUpdatePost} posts={posts} />
       {reviewOpen && user?.isAdmin && (
-        <ReviewPanel
-          onClose={() => setReviewOpen(false)}
-          onApproved={() => { refetch(); setPendingCount(c => Math.max(0, c - 1)) }}
-        />
+        <ReviewPanel onClose={() => setReviewOpen(false)}
+          onApproved={() => { refetch(); setPendingCount(c => Math.max(0, c - 1)) }} />
       )}
     </>
   )
