@@ -361,7 +361,7 @@ body {
 .cal-post-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
 .cal-post-info { flex: 1; min-width: 0; }
 .cal-post-title { font-family: 'Syne'; font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cal-post-meta { font-family: 'DM Mono'; font-size: 9px; color: var(--text3); margin-top: 2px; }
+.cal-post-meta { font-family: 'DM Mono'; font-size: 9px; color: var(--text3); margin-top: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cal-post-type { font-family: 'DM Mono'; font-size: 8px; color: var(--cyan); background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.2); padding: 1px 5px; border-radius: 2px; flex-shrink: 0; }
 
 /* ── ANALYTICS ── */
@@ -925,7 +925,4 @@ body {
 }
 
 /* ── CAL POST META metrics ── */
-.cal-post-meta {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  font-family: 'DM Mono'; font-size: 9px; color: var(--text3);
 }

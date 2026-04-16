@@ -188,6 +188,13 @@ export default function CalendarView({ posts }) {
                                   📢 {Number(post.stats.impressions)>=1000?`${(Number(post.stats.impressions)/1000).toFixed(1)}k`:post.stats.impressions}
                                 </span>
                               )}
+                              {(!post.stats?.views || Number(post.stats.views) === 0) &&
+                               (!post.stats?.impressions || Number(post.stats.impressions) === 0) &&
+                               (!post.stats?.engagement || Number(post.stats.engagement) === 0) && (
+                                <span style={{ color:'rgba(74,65,104,0.6)', fontSize:8, fontStyle:'italic' }}>
+                                  no stats · sync from Sprout
+                                </span>
+                              )}
                             </div>
                           </div>
                           {post.mediaType && (
