@@ -69,8 +69,6 @@ export function useSprout() {
         'lifetime.engagements',
         'lifetime.video_views',
         'lifetime.likes',
-        'lifetime.comments',
-        'lifetime.shares',
       ],
       page: 1,
       limit: 200,
