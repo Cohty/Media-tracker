@@ -5,7 +5,8 @@ import { importFromSprout } from '../hooks/useSprout'
 export default function SproutImportModal({ isOpen, onClose, onDone }) {
   const [days, setDays] = useState(365)
   const [showName, setShowName] = useState('Standalones')
-  const [status, setStatus] = useState(null) // null | 'loading' | 'done' | 'error'
+  const [videoOnly, setVideoOnly] = useState(true)
+  const [status, setStatus] = useState(null)
   const [result, setResult] = useState(null)
   const [msg, setMsg] = useState('')
 
@@ -13,7 +14,7 @@ export default function SproutImportModal({ isOpen, onClose, onDone }) {
     setStatus('loading')
     setMsg('Connecting to Sprout…')
     try {
-      const data = await importFromSprout(days, showName, m => setMsg(m))
+      const data = await importFromSprout(days, showName, videoOnly, m => setMsg(m))
       setResult(data)
       setStatus('done')
       onDone()
@@ -38,12 +39,33 @@ export default function SproutImportModal({ isOpen, onClose, onDone }) {
           {status === null && (
             <>
               <p style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.8 }}>
-                Pulls all posts from Sprout Social and creates cards for each one with stats pre-filled.
-                Existing posts won't be duplicated.
+                Pulls posts from Sprout and creates cards with stats pre-filled. Existing posts won't be duplicated.
               </p>
+
+              <div className="field">
+                <label>Content type</label>
+                <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                  <button
+                    className={`metric-btn${videoOnly ? ' active' : ''}`}
+                    style={videoOnly ? { color: 'var(--cyan)', borderColor: 'rgba(0,229,255,0.4)' } : {}}
+                    onClick={() => setVideoOnly(true)}
+                  >
+                    🎬 Video only (YouTube, TikTok)
+                  </button>
+                  <button
+                    className={`metric-btn${!videoOnly ? ' active' : ''}`}
+                    style={!videoOnly ? { color: 'var(--purple)', borderColor: 'rgba(180,78,255,0.4)' } : {}}
+                    onClick={() => setVideoOnly(false)}
+                  >
+                    All posts
+                  </button>
+                </div>
+              </div>
+
               <div className="field">
                 <label>How far back</label>
-                <select className="filter-select" style={{ width: '100%' }} value={days} onChange={e => setDays(Number(e.target.value))}>
+                <select style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 10px', fontFamily: 'DM Mono', fontSize: 12, color: 'var(--text)', outline: 'none', boxShadow: 'var(--win-in)', appearance: 'none', cursor: 'pointer' }}
+                  value={days} onChange={e => setDays(Number(e.target.value))}>
                   <option value={30}>Last 30 days</option>
                   <option value={90}>Last 90 days</option>
                   <option value={180}>Last 6 months</option>
@@ -51,42 +73,46 @@ export default function SproutImportModal({ isOpen, onClose, onDone }) {
                   <option value={730}>Last 2 years</option>
                 </select>
               </div>
+
               <div className="field">
                 <label>Assign to show</label>
-                <select className="filter-select" style={{ width: '100%' }} value={showName} onChange={e => setShowName(e.target.value)}>
+                <select style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 10px', fontFamily: 'DM Mono', fontSize: 12, color: 'var(--text)', outline: 'none', boxShadow: 'var(--win-in)', appearance: 'none', cursor: 'pointer' }}
+                  value={showName} onChange={e => setShowName(e.target.value)}>
                   {SHOWS.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
                 </select>
-                <div className="field-hint">You can move cards to the right show after import using the Edit button</div>
+                <div className="field-hint">Use Edit on any card to reassign shows after import</div>
               </div>
             </>
           )}
+
           {status === 'loading' && (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--cyan)', marginBottom: 12 }}>{msg}</div>
+            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+              <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--cyan)', marginBottom: 10 }}>{msg}</div>
               <div style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--text3)' }}>This may take a minute for large date ranges…</div>
             </div>
           )}
+
           {status === 'done' && result && (
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontFamily: 'VT323', fontSize: 48, color: 'var(--green)', textShadow: '0 0 12px var(--green)', marginBottom: 8 }}>
+              <div style={{ fontFamily: 'VT323', fontSize: 52, color: 'var(--green)', textShadow: '0 0 12px var(--green)', marginBottom: 6 }}>
                 {result.imported}
               </div>
               <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--green)', marginBottom: 12 }}>posts imported</div>
               <div style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--text3)' }}>
-                {result.fetched} fetched from Sprout · {result.skipped} already existed
+                {result.fetched} fetched · {result.skipped} already existed or skipped
               </div>
             </div>
           )}
+
           {status === 'error' && (
-            <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--pink)', padding: '16px 0' }}>{msg}</div>
+            <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--pink)', padding: '16px 0', lineHeight: 1.6 }}>{msg}</div>
           )}
         </div>
         <div className="modal-actions">
-          <button className="btn-ghost" onClick={onClose}>
-            {status === 'done' ? 'Close' : 'Cancel'}
-          </button>
+          <button className="btn-ghost" onClick={onClose}>{status === 'done' ? 'Close' : 'Cancel'}</button>
           {status === null && (
-            <button className="btn-primary" style={{ background: 'var(--green)', color: '#000', boxShadow: 'var(--win-out), 0 0 12px rgba(57,255,140,0.3)' }}
+            <button className="btn-primary"
+              style={{ background: 'var(--green)', color: '#000', boxShadow: 'var(--win-out), 0 0 12px rgba(57,255,140,0.3)' }}
               onClick={handleImport}>
               IMPORT POSTS
             </button>

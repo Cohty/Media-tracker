@@ -125,12 +125,12 @@ export function useSprout() {
   return { profileIds, status, error, syncPostStats }
 }
 
-export async function importFromSprout(days = 365, showName = 'Standalones', onProgress) {
+export async function importFromSprout(days = 365, showName = 'Standalones', videoOnly = true, onProgress) {
   onProgress?.('Importing from Sprout…')
   const res = await fetch('/api/sprout-import', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ days, showName }),
+    body: JSON.stringify({ days, showName, videoOnly }),
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)

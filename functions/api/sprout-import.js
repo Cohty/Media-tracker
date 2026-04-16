@@ -1,22 +1,21 @@
 /**
  * POST /api/sprout-import
- * Fetches all Sprout posts for a date range and imports them into D1.
- * Body: { days: 365, showName: 'Standalones' }
+ * Fetches VIDEO posts from Sprout Social and imports them into D1.
+ * Body: { days: 365, showName: 'Standalones', videoOnly: true }
  */
 
 const CORS = { 'Content-Type': 'application/json' }
 
-const NETWORK_TO_PLATFORM = {
-  twitter:               'X',
-  youtube:               'YouTube',
-  linkedin_company:      'LinkedIn',
-  fb_instagram_account:  'Instagram',
-  tiktok:                'TikTok',
-  facebook:              'Other',
-  threads:               'Other',
-}
-
 const PROFILE_IDS = [7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559]
+
+// Video post types across platforms
+const VIDEO_POST_TYPES = [
+  'YOUTUBE_VIDEO',
+  'TIKTOK_VIDEO',
+  'INSTAGRAM_VIDEO',
+  'INSTAGRAM_REEL',
+  'FACEBOOK_VIDEO',
+].join(',')
 
 export async function onRequestPost({ request, env }) {
   const token = env.SPROUT_API_TOKEN
@@ -26,7 +25,7 @@ export async function onRequestPost({ request, env }) {
     return new Response(JSON.stringify({ error: 'Sprout not configured' }), { status: 503, headers: CORS })
   }
 
-  const { days = 365, showName = 'Standalones' } = await request.json().catch(() => ({}))
+  const { days = 365, showName = 'Standalones', videoOnly = true } = await request.json().catch(() => ({}))
 
   const now = new Date()
   const start = new Date(now)
@@ -43,6 +42,15 @@ export async function onRequestPost({ request, env }) {
   const { results: existing } = await env.DB.prepare('SELECT url FROM posts').all()
   const existingUrls = new Set(existing.map(r => normalizeUrl(r.url)))
 
+  // Build filters
+  const filters = [
+    `customer_profile_id.eq(${PROFILE_IDS.join(', ')})`,
+    `created_time.in(${fmt(start)}..${fmt(now)})`,
+  ]
+  if (videoOnly) {
+    filters.push(`post_type.eq(${VIDEO_POST_TYPES})`)
+  }
+
   // Fetch all Sprout posts paginated
   let allPosts = []
   let page = 1
@@ -50,11 +58,8 @@ export async function onRequestPost({ request, env }) {
 
   do {
     const payload = {
-      filters: [
-        `customer_profile_id.eq(${PROFILE_IDS.join(', ')})`,
-        `created_time.in(${fmt(start)}..${fmt(now)})`,
-      ],
-      fields: ['perma_link', 'created_time', 'text', 'network'],
+      filters,
+      fields: ['perma_link', 'created_time', 'text', 'post_type'],
       metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.likes'],
       page,
       limit: 200,
@@ -65,20 +70,38 @@ export async function onRequestPost({ request, env }) {
     })
 
     if (!res.ok) {
+      // If post_type filter fails, retry without it
+      if (videoOnly) {
+        const payload2 = { ...payload, filters: filters.slice(0, 2) }
+        const res2 = await fetch(`https://api.sproutsocial.com/v1/${customerId}/analytics/posts`, {
+          method: 'POST', headers, body: JSON.stringify(payload2),
+        })
+        if (res2.ok) {
+          const data2 = await res2.json()
+          // Filter client-side for video URLs
+          const posts = (data2?.data || []).filter(p => isVideoUrl(p.perma_link || p.permalink || ''))
+          allPosts = allPosts.concat(posts)
+          totalPages = data2?.paging?.total_pages || 1
+          page++
+          continue
+        }
+      }
       const err = await res.json().catch(() => ({}))
       return new Response(JSON.stringify({ error: err.error || `Sprout API ${res.status}` }), { status: 400, headers: CORS })
     }
 
     const data = await res.json()
-    allPosts = allPosts.concat(data?.data || [])
+    let posts = data?.data || []
+
+    // If post_type filter not supported, filter by URL client-side
+    if (videoOnly && !filters.some(f => f.includes('post_type'))) {
+      posts = posts.filter(p => isVideoUrl(p.perma_link || p.permalink || ''))
+    }
+
+    allPosts = allPosts.concat(posts)
     totalPages = data?.paging?.total_pages || 1
     page++
-  } while (page <= Math.min(totalPages, 50)) // cap at 50 pages = 10,000 posts
-
-  // Build Sprout profile ID → network_type map
-  const profileRes = await fetch(`https://api.sproutsocial.com/v1/${customerId}/metadata/customer`, { headers })
-  const profileData = await profileRes.json()
-  const profiles = profileData?.data || []
+  } while (page <= Math.min(totalPages, 50))
 
   // Insert new posts into D1
   let imported = 0
@@ -91,14 +114,17 @@ export async function onRequestPost({ request, env }) {
     const normUrl = normalizeUrl(permalink)
     if (existingUrls.has(normUrl)) { skipped++; continue }
 
-    // Determine platform from URL
     const platform = detectPlatformFromUrl(permalink)
     const metrics = sp.metrics || {}
-    const text = sp.text || ''
-    const title = text.length > 120 ? text.slice(0, 120) + '…' : text || permalink
+    const text = (sp.text || '').replace(/https?:\/\/\S+/g, '').trim()
+    const title = text.length > 120 ? text.slice(0, 120) + '…'
+      : text || permalink.split('/').pop() || permalink
     const createdAt = sp.created_time ? new Date(sp.created_time) : new Date()
     const dateStr = createdAt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
-    const id = `sprout_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    const id = `sprout_${createdAt.getTime()}_${Math.random().toString(36).slice(2, 6)}`
+
+    // Determine media type from platform
+    const mediaType = (platform === 'YouTube' || platform === 'TikTok') ? 'Full Episode' : 'Full Episode'
 
     try {
       await env.DB.prepare(`
@@ -108,9 +134,9 @@ export async function onRequestPost({ request, env }) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         id, permalink, title, showName, platform,
-        'Full Episode', '', '',
+        mediaType, '', '',
         dateStr, createdAt.getTime(),
-        String(metrics['lifetime.video_views'] || metrics['lifetime.impressions'] || ''),
+        String(metrics['lifetime.video_views'] || ''),
         String(metrics['lifetime.engagements'] || ''),
         String(metrics['lifetime.impressions'] || ''),
         'sprout-import', Date.now()
@@ -128,7 +154,14 @@ export async function onRequestPost({ request, env }) {
     fetched: allPosts.length,
     imported,
     skipped,
+    videoOnly,
   }), { headers: CORS })
+}
+
+function isVideoUrl(url) {
+  const u = url.toLowerCase()
+  return u.includes('youtube.com') || u.includes('youtu.be') || u.includes('tiktok.com')
+    || u.includes('instagram.com/reel') || u.includes('instagram.com/p/')
 }
 
 function normalizeUrl(url) {

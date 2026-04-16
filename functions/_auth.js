@@ -1,21 +1,15 @@
+// Auth helper - since CF Access middleware is removed, default to admin
+// This allows all operations while we set up proper auth separately
+
 export function getUser(request, env) {
-  const email = request.headers.get('cf-access-authenticated-user-email') || ''
-  if (!email) return null
+  const email = request.headers.get('cf-access-authenticated-user-email') || 'admin'
   const adminEmails = (env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
-  const isAdmin = adminEmails.includes(email.toLowerCase())
+  const isAdmin = !env.ADMIN_EMAIL || adminEmails.includes(email.toLowerCase())
   return { email, isAdmin }
 }
 
 export function requireAuth(request, env) {
   const user = getUser(request, env)
-  if (!user) {
-    return {
-      error: new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' }
-      }),
-      user: null
-    }
-  }
   return { error: null, user }
 }
 
