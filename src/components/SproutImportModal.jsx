@@ -11,7 +11,7 @@ const PLATFORM_OPTIONS = [
   { id: 'TikTok',    label: 'TikTok',    color: '#00e5ff' },
 ]
 
-export default function SproutImportModal({ isOpen, onClose, onDone }) {
+export default function SproutImportModal({ isOpen, onClose, onDone, onShowSummary }) {
   const [days, setDays] = useState(365)
   const [platforms, setPlatforms] = useState(['YouTube', 'TikTok'])
   const [step, setStep] = useState('config')
@@ -54,6 +54,12 @@ export default function SproutImportModal({ isOpen, onClose, onDone }) {
         </div>
         <div className="modal-body">
 
+          {step === 'done' && result?.logId && (
+            <button className="btn-ghost" style={{ color: 'var(--cyan)' }}
+              onClick={() => onShowSummary(result.logId)}>
+              View Details
+            </button>
+          )}
           {step === 'config' && (
             <>
               {/* How it works */}
@@ -148,6 +154,12 @@ export default function SproutImportModal({ isOpen, onClose, onDone }) {
 
         <div className="modal-actions">
           <button className="btn-ghost" onClick={onClose}>{step === 'done' ? 'Close' : 'Cancel'}</button>
+          {step === 'done' && result?.logId && (
+            <button className="btn-ghost" style={{ color: 'var(--cyan)' }}
+              onClick={() => onShowSummary(result.logId)}>
+              View Details
+            </button>
+          )}
           {step === 'config' && (
             <button className="btn-primary"
               disabled={platforms.length === 0}

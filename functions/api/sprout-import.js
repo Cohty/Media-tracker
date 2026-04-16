@@ -36,6 +36,7 @@ function parseTag(tagText) {
 }
 
 function resolveMediaType(platform, isEditorial) {
+  if (platform === 'TikTok') return 'Clip'
   if (isEditorial) return 'Article'
   if (platform === 'YouTube' || platform === 'TikTok') return 'Full Episode'
   if (platform === 'LinkedIn' || platform === 'Instagram') return 'Article'
@@ -202,8 +203,27 @@ export async function onRequestPost({ request, env }) {
     } catch { skipped++ }
   }
 
+  // Save import log to D1
+  const logId = `log_${Date.now()}`
+  const importedPosts = [] // collect for summary
+  
+  // Re-query to get what was just imported
+  try {
+    const { results: newPosts } = await env.DB.prepare(
+      `SELECT id, title, show_name, platform, media_type, episode_number, url FROM posts WHERE created_by = 'sprout-import' AND created_at > ?`
+    ).bind(Date.now() - 120000).all() // posts imported in last 2 mins
+    
+    await env.DB.prepare(`
+      INSERT INTO import_log (id, imported_at, fetched, imported, skipped, tagged, unassigned, by_show, posts)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      logId, Date.now(), allPosts.length, imported, skipped, tagged, unassigned,
+      JSON.stringify(byShow), JSON.stringify(newPosts.slice(0, 200))
+    ).run()
+  } catch {}
+
   return new Response(
-    JSON.stringify({ ok: true, fetched: allPosts.length, imported, skipped, tagged, unassigned, byShow }),
+    JSON.stringify({ ok: true, logId, fetched: allPosts.length, imported, skipped, tagged, unassigned, byShow }),
     { headers: CORS }
   )
 }

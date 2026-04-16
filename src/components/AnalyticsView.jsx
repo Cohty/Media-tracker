@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import { SHOWS, MEDIA_TYPES } from '../constants'
 import { useSprout } from '../hooks/useSprout'
+import { ChartBoundary } from './ChartWrapper'
 import SproutImportModal from './SproutImportModal'
 
 const METRICS = [
@@ -27,12 +28,13 @@ const CustomTooltip = ({ active, payload, label }) => {
         isOpen={importOpen}
         onClose={() => setImportOpen(false)}
         onDone={() => { setImportOpen(false); window.location.reload() }}
+        onShowSummary={logId => { onImportDone?.(logId) }}
       />
     </div>
   )
 }
 
-export default function AnalyticsView({ posts, onUpdatePost }) {
+export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
   const [filterShow, setFilterShow] = useState('all')
   const [filterType, setFilterType] = useState('all')
   const [activeMetrics, setActiveMetrics] = useState(['views', 'engagement', 'impressions'])
@@ -168,6 +170,14 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
             )}
           </div>
 
+          <button className="batch-btn batch-btn--export"
+            onClick={() => exportCSV(filteredPosts)}
+            title="Export filtered posts to CSV"
+            style={{ fontFamily: 'DM Mono', fontSize: 10, padding: '6px 12px', borderRadius: 'var(--radius)',
+              cursor: 'pointer', boxShadow: 'var(--win-out)', background: 'rgba(240,224,64,0.06)',
+              border: '1px solid rgba(240,224,64,0.25)', color: 'var(--yellow)' }}>
+            ⬇ Export CSV
+          </button>
           <div className="filter-meta">
             <span style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--text3)' }}>
               {filteredPosts.length} posts · {chartData.length} with stats
@@ -187,6 +197,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
               <div>No stats yet — sync from Sprout or add manually below</div>
             </div>
           ) : (
+            <ChartBoundary dataKey={filterShow+filterType+activeMetrics.join()} height={260}>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(180,78,255,0.08)" vertical={false} />
@@ -203,6 +214,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
                 {activeMetrics.includes('impressions') && <Bar dataKey="impressions" name="Impressions" fill="#b44eff" radius={[2,2,0,0]} maxBarSize={32} />}
               </BarChart>
             </ResponsiveContainer>
+            </ChartBoundary>
           )}
         </div>
       </div>
@@ -262,6 +274,7 @@ export default function AnalyticsView({ posts, onUpdatePost }) {
         isOpen={importOpen}
         onClose={() => setImportOpen(false)}
         onDone={() => { setImportOpen(false); window.location.reload() }}
+        onShowSummary={logId => { onImportDone?.(logId) }}
       />
     </div>
   )

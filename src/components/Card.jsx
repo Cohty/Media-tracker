@@ -9,28 +9,37 @@ const TYPE_COLORS = {
 const CLIP_COLOR = { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.25)' }
 
 function StatBadge({ icon, value, color }) {
-  if (!value && value !== 0) return null
+  if (!value) return null
   const num = Number(value)
   if (isNaN(num) || num === 0) return null
-  const display = num >= 1000 ? `${(num / 1000).toFixed(1)}k` : num.toLocaleString()
+  const display = num >= 1000 ? `${(num/1000).toFixed(1)}k` : num.toLocaleString()
   return (
-    <span className="card-stat-badge" style={{ color, borderColor: color + '40', background: color + '10' }}>
+    <span className="card-stat-badge" style={{ color, borderColor: color+'40', background: color+'10' }}>
       {icon} {display}
     </span>
   )
 }
 
-export default function Card({ post, onDelete, onMove, highlighted }) {
+export default function Card({ post, onDelete, onMove, highlighted, selected, onToggleSelect }) {
   const [confirming, setConfirming] = useState(false)
   const pm = PLATFORMS[post.platform] || PLATFORMS.Other
   const isClip = post.mediaType === 'Clip'
   const typeLabel = isClip ? (post.clipIndex || 'Clip') : post.mediaType
   const tc = isClip ? CLIP_COLOR : (post.mediaType ? TYPE_COLORS[post.mediaType] : null)
-
   const hasStats = post.stats && (post.stats.views || post.stats.impressions || post.stats.engagement)
 
   return (
-    <div className={`card${highlighted ? ' card--highlighted' : ''}`}>
+    <div className={`card${highlighted ? ' card--highlighted' : ''}${selected ? ' selected' : ''}`}
+      onClick={e => { if (e.shiftKey && onToggleSelect) { e.preventDefault(); onToggleSelect(post.id) } }}>
+
+      {/* Checkbox — visible on hover or when selected */}
+      {onToggleSelect && (
+        <div className={`card-checkbox${selected ? ' checked' : ''}`}
+          onClick={e => { e.stopPropagation(); onToggleSelect(post.id) }}>
+          {selected ? '✓' : ''}
+        </div>
+      )}
+
       <div className="card-pills-row">
         <div className="p-pill" style={{ background: pm.bg, color: pm.color }}>{post.platform}</div>
         {tc && <div className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>{typeLabel}</div>}

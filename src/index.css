@@ -818,3 +818,67 @@ body {
 .column[data-unassigned] .col-titlebar {
   background: linear-gradient(90deg, #1a1530, #2a2040) !important;
 }
+
+/* ── BATCH BAR ── */
+.batch-bar {
+  position: sticky; top: 57px; z-index: 15;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 24px; gap: 12px;
+  background: rgba(180,78,255,0.12);
+  border-bottom: 1px solid rgba(180,78,255,0.35);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 16px rgba(180,78,255,0.15);
+}
+.batch-bar-left { display: flex; align-items: center; gap: 10px; }
+.batch-bar-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.batch-count {
+  font-family: 'DM Mono'; font-size: 11px; font-weight: 500;
+  color: var(--purple); text-shadow: 0 0 8px rgba(180,78,255,0.5);
+}
+.batch-clear {
+  font-family: 'DM Mono'; font-size: 9px; color: var(--text3);
+  background: none; border: none; cursor: pointer; padding: 2px 6px;
+}
+.batch-clear:hover { color: var(--text); }
+.batch-select {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 5px 8px;
+  font-family: 'DM Mono'; font-size: 9px; color: var(--text);
+  outline: none; cursor: pointer; appearance: none; box-shadow: var(--win-in);
+}
+.batch-select:focus { border-color: var(--purple); }
+.batch-select option { background: var(--surface2); }
+.batch-btn {
+  font-family: 'DM Mono'; font-size: 9px; padding: 5px 10px;
+  border-radius: var(--radius); cursor: pointer; box-shadow: var(--win-out);
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+  transition: background .1s;
+}
+.batch-btn:disabled { opacity: .3; cursor: not-allowed; }
+.batch-btn--apply { color: var(--cyan); border-color: rgba(0,229,255,0.3); }
+.batch-btn--apply:not(:disabled):hover { background: rgba(0,229,255,0.1); }
+.batch-btn--delete { color: var(--pink); border-color: rgba(255,45,120,0.3); }
+.batch-btn--delete:hover { background: rgba(255,45,120,0.1); }
+.batch-btn--confirm { background: var(--pink); color: #fff; border-color: var(--pink); }
+.batch-btn--confirm:hover { opacity: .85; }
+.batch-divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+
+/* ── CARD CHECKBOX ── */
+.card-checkbox {
+  position: absolute; top: 8px; right: 8px;
+  width: 16px; height: 16px; border-radius: 3px;
+  border: 1px solid var(--border2); background: var(--surface2);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--win-in); transition: background .1s, border-color .1s;
+  font-size: 9px; color: #fff;
+}
+.card-checkbox.checked { background: var(--purple); border-color: var(--purple); }
+.card { position: relative; }
+.card.batch-mode:hover .card-checkbox { opacity: 1; }
+.card.selected { border-color: rgba(180,78,255,0.5) !important; box-shadow: var(--win-in), 0 0 8px rgba(180,78,255,0.2); }
+
+.batch-btn--export {
+  color: var(--yellow); border-color: rgba(240,224,64,0.25);
+  background: rgba(240,224,64,0.06);
+}
+.batch-btn--export:hover { background: rgba(240,224,64,0.14); }
