@@ -4,18 +4,62 @@ export const SHOWS = [
   { name: 'Layer One',             hex: '#ff2d78', bg: '#2a0016', tc: '#ff2d78' },
   { name: 'The White Papers',      hex: '#39ff8c', bg: '#002218', tc: '#39ff8c' },
   { name: 'Standalones',           hex: '#b44eff', bg: '#1a0030', tc: '#b44eff' },
+  { name: 'Editorials',            hex: '#00a8ff', bg: '#001428', tc: '#00a8ff' },
 ]
 
-// Unassigned is a virtual column — not a real show, just a holding area
 export const UNASSIGNED = { name: 'Unassigned', hex: '#4a4168', bg: '#0f0c1e', tc: '#4a4168' }
 
-// Keywords that map to each show — used for auto-matching Sprout tags
-export const SHOW_KEYWORDS = {
-  'The Crypto Beat':       ['crypto beat', 'cryptobeat', 'the crypto beat'],
-  'The Big Brain Podcast': ['big brain', 'bigbrain', 'big brain podcast'],
-  'Layer One':             ['layer one', 'layer 1', 'layerone'],
-  'The White Papers':      ['white papers', 'whitepapers', 'the white papers'],
-  'Standalones':           ['standalone', 'standalones'],
+// Map Sprout collection names → our show names
+export const COLLECTION_TO_SHOW = {
+  'the crypto beat':       'The Crypto Beat',
+  'cryptobeat':            'The Crypto Beat',
+  'the big brain podcast': 'The Big Brain Podcast',
+  'big brain podcast':     'The Big Brain Podcast',
+  'big brain':             'The Big Brain Podcast',
+  'layer1':                'Layer One',
+  'layer 1':               'Layer One',
+  'layer one':             'Layer One',
+  'the white papers':      'The White Papers',
+  'white papers':          'The White Papers',
+  'standalones':           'Standalones',
+  'standalone':            'Standalones',
+  'editorials':            'Editorials',
+  'editorial':             'Editorials',
+  'newsroom clips':        'Standalones',
+  'around the block':      'Standalones',
+  'the starting block':    'Standalones',
+}
+
+// Map Sprout tag PREFIXES → { show, episodePrefix }
+// e.g. "TCB 73" → { show: 'The Crypto Beat', episode: '73' }
+export const TAG_PREFIXES = [
+  { prefix: 'tcb',  show: 'The Crypto Beat'       },
+  { prefix: 'bbp',  show: 'The Big Brain Podcast'  },
+  { prefix: 'l1',   show: 'Layer One'              },
+  { prefix: 'wp',   show: 'The White Papers'       },
+  { prefix: 'sa',   show: 'Standalones'            },
+  { prefix: 'ed',   show: 'Editorials'             },
+]
+
+export function parseTagToShowAndEpisode(tagText) {
+  if (!tagText) return null
+  const t = tagText.toLowerCase().trim()
+
+  // Try prefix matching: "TCB 73", "L1 01", "BBP 05", etc.
+  for (const { prefix, show } of TAG_PREFIXES) {
+    const re = new RegExp(`^${prefix}\\s*(\\d+)`, 'i')
+    const m = tagText.trim().match(re)
+    if (m) {
+      return { show, episode: String(parseInt(m[1], 10)) }
+    }
+  }
+
+  // Try collection-level keyword matching (no episode number)
+  for (const [keyword, show] of Object.entries(COLLECTION_TO_SHOW)) {
+    if (t === keyword || t.includes(keyword)) return { show, episode: null }
+  }
+
+  return null
 }
 
 export const PLATFORMS = {
@@ -46,13 +90,4 @@ export async function fetchYTTitle(url) {
     const d = await res.json()
     return d.title || ''
   } catch { return '' }
-}
-
-// Match a tag text to one of our shows
-export function matchTagToShow(tagText) {
-  const t = tagText.toLowerCase().trim()
-  for (const [show, keywords] of Object.entries(SHOW_KEYWORDS)) {
-    if (keywords.some(k => t.includes(k) || k.includes(t))) return show
-  }
-  return null
 }

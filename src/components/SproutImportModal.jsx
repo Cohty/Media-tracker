@@ -1,54 +1,40 @@
 import { useState, useEffect } from 'react'
-import { SHOWS, matchTagToShow } from '../constants'
+import { SHOWS, TAG_PREFIXES, COLLECTION_TO_SHOW } from '../constants'
 
 const OUR_SHOWS = SHOWS.map(s => s.name)
 
+const PLATFORM_OPTIONS = [
+  { id: 'YouTube',   label: 'YouTube',   color: '#ff4444' },
+  { id: 'X',         label: 'X / Twitter', color: '#c8c4e0' },
+  { id: 'LinkedIn',  label: 'LinkedIn',  color: '#00a8ff' },
+  { id: 'Instagram', label: 'Instagram', color: '#ff2d78' },
+  { id: 'TikTok',    label: 'TikTok',    color: '#00e5ff' },
+]
+
 export default function SproutImportModal({ isOpen, onClose, onDone }) {
   const [days, setDays] = useState(365)
-  const [videoOnly, setVideoOnly] = useState(true)
-  const [sproutTags, setSproutTags] = useState([])
-  const [tagMappings, setTagMappings] = useState({})
-  const [tagsLoading, setTagsLoading] = useState(false)
+  const [platforms, setPlatforms] = useState(['YouTube', 'TikTok'])
   const [step, setStep] = useState('config')
   const [msg, setMsg] = useState('')
   const [result, setResult] = useState(null)
 
-  useEffect(() => {
-    if (isOpen && sproutTags.length === 0) loadTags()
-  }, [isOpen])
-
-  async function loadTags() {
-    setTagsLoading(true)
-    try {
-      const res = await fetch('/api/sprout-tags')
-      if (res.ok) {
-        const data = await res.json()
-        const tags = (data?.data || []).filter(t => t.active)
-        setSproutTags(tags)
-        // Auto-match by keyword
-        const auto = {}
-        tags.forEach(tag => {
-          const match = matchTagToShow(tag.text)
-          auto[tag.tag_id] = match || 'Unassigned'
-        })
-        setTagMappings(auto)
-      }
-    } catch {}
-    setTagsLoading(false)
+  function togglePlatform(id) {
+    setPlatforms(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
   }
 
   async function handleImport() {
-    setStep('loading'); setMsg('Connecting to Sprout…')
+    setStep('loading'); setMsg('Connecting to Sprout Social…')
     try {
-      const mappedTags = Object.entries(tagMappings)
-        .filter(([, show]) => show && show !== 'Unassigned')
-        .map(([tagId, showName]) => ({ tagId: Number(tagId), showName }))
-
       const res = await fetch('/api/sprout-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ days, videoOnly, tagMappings: mappedTags, useTagMapping: true }),
+        body: JSON.stringify({
+          days,
+          videoOnly: false,
+          filterPlatforms: platforms,
+        }),
       })
+      setMsg('Processing posts…')
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
       setResult(data); setStep('done'); onDone()
@@ -57,12 +43,9 @@ export default function SproutImportModal({ isOpen, onClose, onDone }) {
 
   if (!isOpen) return null
 
-  const autoMatched = sproutTags.filter(t => matchTagToShow(t.text))
-  const unmatched = sproutTags.filter(t => !matchTagToShow(t.text))
-
   return (
     <div className="overlay open" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal" style={{ maxWidth: 500 }}>
+      <div className="modal" style={{ maxWidth: 440 }}>
         <div className="modal-titlebar" style={{ background: 'linear-gradient(90deg, #003020, #006040)' }}>
           <span className="modal-titlebar-text">📥 Import from Sprout Social</span>
           <div className="modal-titlebar-controls">
@@ -70,23 +53,42 @@ export default function SproutImportModal({ isOpen, onClose, onDone }) {
           </div>
         </div>
         <div className="modal-body">
+
           {step === 'config' && (
             <>
-              <div className="field">
-                <label>Content type</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className={`metric-btn${videoOnly ? ' active' : ''}`}
-                    style={videoOnly ? { color: 'var(--cyan)', borderColor: 'rgba(0,229,255,0.4)' } : {}}
-                    onClick={() => setVideoOnly(true)}>🎬 Video only</button>
-                  <button className={`metric-btn${!videoOnly ? ' active' : ''}`}
-                    style={!videoOnly ? { color: 'var(--purple)', borderColor: 'rgba(180,78,255,0.4)' } : {}}
-                    onClick={() => setVideoOnly(false)}>All posts</button>
+              {/* How it works */}
+              <div style={{ background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.15)', borderRadius: 'var(--radius)', padding: '10px 12px', marginBottom: 14 }}>
+                <div style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--cyan)', marginBottom: 6, letterSpacing: '0.5px' }}>HOW MATCHING WORKS</div>
+                <div style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--text3)', lineHeight: 1.8 }}>
+                  Posts are auto-sorted using Sprout tags:<br />
+                  <span style={{ color: 'var(--yellow)' }}>TCB 73</span> → The Crypto Beat · EP 73<br />
+                  <span style={{ color: 'var(--yellow)' }}>L1 01</span> → Layer One · EP 1<br />
+                  <span style={{ color: 'var(--yellow)' }}>BBP 05</span> → Big Brain Podcast · EP 5<br />
+                  <span style={{ color: 'var(--yellow)' }}>Editorials</span> → Editorials board<br />
+                  Untagged posts → Unassigned column
                 </div>
               </div>
 
+              {/* Platforms */}
+              <div className="field">
+                <label>Platforms to import</label>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {PLATFORM_OPTIONS.map(p => (
+                    <button key={p.id}
+                      className={`metric-btn${platforms.includes(p.id) ? ' active' : ''}`}
+                      style={platforms.includes(p.id) ? { color: p.color, borderColor: p.color + '55' } : {}}
+                      onClick={() => togglePlatform(p.id)}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="field-hint">Select all platforms you want to pull in</div>
+              </div>
+
+              {/* Date range */}
               <div className="field">
                 <label>How far back</label>
-                <select style={{ width:'100%', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:'var(--radius)', padding:'8px 10px', fontFamily:'DM Mono', fontSize:12, color:'var(--text)', outline:'none', appearance:'none', cursor:'pointer' }}
+                <select style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 10px', fontFamily: 'DM Mono', fontSize: 12, color: 'var(--text)', outline: 'none', appearance: 'none', cursor: 'pointer' }}
                   value={days} onChange={e => setDays(Number(e.target.value))}>
                   <option value={30}>Last 30 days</option>
                   <option value={90}>Last 90 days</option>
@@ -96,102 +98,51 @@ export default function SproutImportModal({ isOpen, onClose, onDone }) {
                 </select>
               </div>
 
-              {/* Tag matching status */}
-              <div className="field">
-                <label>
-                  Show matching
-                  {tagsLoading && <span style={{ color:'var(--text3)', marginLeft:8 }}>loading tags…</span>}
-                </label>
-
-                {!tagsLoading && sproutTags.length > 0 && (
-                  <>
-                    {/* Auto-matched */}
-                    {autoMatched.length > 0 && (
-                      <div style={{ marginBottom: 8 }}>
-                        <div style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--green)', marginBottom:5 }}>
-                          ✓ AUTO-MATCHED ({autoMatched.length})
-                        </div>
-                        {autoMatched.map(tag => (
-                          <div key={tag.tag_id} className="tag-mapping-row">
-                            <span className="tag-mapping-name">{tag.text}</span>
-                            <span style={{ color:'var(--text3)', fontSize:9 }}>→</span>
-                            <select className="tag-mapping-select"
-                              value={tagMappings[tag.tag_id] || 'Unassigned'}
-                              onChange={e => setTagMappings(p => ({ ...p, [tag.tag_id]: e.target.value }))}>
-                              <option value="Unassigned">— Unassigned —</option>
-                              {OUR_SHOWS.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Unmatched tags */}
-                    {unmatched.length > 0 && (
-                      <div>
-                        <div style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--yellow)', marginBottom:5 }}>
-                          ⚠ NEEDS MAPPING ({unmatched.length})
-                        </div>
-                        {unmatched.map(tag => (
-                          <div key={tag.tag_id} className="tag-mapping-row">
-                            <span className="tag-mapping-name">{tag.text}</span>
-                            <span style={{ color:'var(--text3)', fontSize:9 }}>→</span>
-                            <select className="tag-mapping-select"
-                              value={tagMappings[tag.tag_id] || 'Unassigned'}
-                              onChange={e => setTagMappings(p => ({ ...p, [tag.tag_id]: e.target.value }))}>
-                              <option value="Unassigned">— Unassigned —</option>
-                              {OUR_SHOWS.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="field-hint" style={{ marginTop:8 }}>
-                      Posts without a matched tag → Unassigned column (use Edit to reassign)
-                    </div>
-                  </>
-                )}
-
-                {!tagsLoading && sproutTags.length === 0 && (
-                  <div style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--text3)', padding:'6px 0' }}>
-                    No Sprout tags found — all posts will go to Unassigned column.
-                  </div>
-                )}
-              </div>
+              {platforms.length === 0 && (
+                <div style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--pink)', marginTop: 4 }}>
+                  Select at least one platform
+                </div>
+              )}
             </>
           )}
 
           {step === 'loading' && (
-            <div style={{ textAlign:'center', padding:'24px 0' }}>
-              <div style={{ fontFamily:'DM Mono', fontSize:10, color:'var(--cyan)', marginBottom:10 }}>{msg}</div>
-              <div style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--text3)' }}>This may take a minute for large date ranges…</div>
+            <div style={{ textAlign: 'center', padding: '28px 0' }}>
+              <div style={{ fontFamily: 'Press Start 2P', fontSize: 8, color: 'var(--green)', textShadow: '0 0 10px var(--green)', marginBottom: 16, lineHeight: 2 }}>
+                IMPORTING…
+              </div>
+              <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--cyan)', marginBottom: 8 }}>{msg}</div>
+              <div style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--text3)' }}>This may take a minute for large date ranges</div>
             </div>
           )}
 
           {step === 'done' && result && (
-            <div style={{ textAlign:'center', padding:'16px 0' }}>
-              <div style={{ fontFamily:'VT323', fontSize:52, color:'var(--green)', textShadow:'0 0 12px var(--green)', marginBottom:6 }}>{result.imported}</div>
-              <div style={{ fontFamily:'DM Mono', fontSize:10, color:'var(--green)', marginBottom:14 }}>posts imported</div>
-              <div style={{ display:'flex', gap:16, justifyContent:'center' }}>
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ fontFamily:'VT323', fontSize:28, color:'var(--cyan)' }}>{result.tagged}</div>
-                  <div style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)' }}>tag-matched</div>
-                </div>
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ fontFamily:'VT323', fontSize:28, color:'var(--yellow)' }}>{result.unassigned}</div>
-                  <div style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)' }}>unassigned</div>
-                </div>
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ fontFamily:'VT323', fontSize:28, color:'var(--text3)' }}>{result.skipped}</div>
-                  <div style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)' }}>skipped</div>
+            <div style={{ padding: '8px 0' }}>
+              <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                <div style={{ fontFamily: 'VT323', fontSize: 56, color: 'var(--green)', textShadow: '0 0 14px var(--green)', lineHeight: 1 }}>{result.imported}</div>
+                <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--green)', marginBottom: 4 }}>posts imported</div>
+                <div style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--text3)' }}>
+                  {result.tagged} tag-matched · {result.unassigned} unassigned · {result.skipped} skipped
                 </div>
               </div>
+
+              {/* Breakdown by show */}
+              {result.byShow && Object.keys(result.byShow).length > 0 && (
+                <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '10px 12px', boxShadow: 'var(--win-in)' }}>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--text3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.8px' }}>By Show</div>
+                  {Object.entries(result.byShow).sort((a,b) => b[1]-a[1]).map(([show, count]) => (
+                    <div key={show} style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Mono', fontSize: 10, color: 'var(--text2)', padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+                      <span>{show}</span>
+                      <span style={{ fontFamily: 'VT323', fontSize: 18, color: 'var(--purple)', lineHeight: 1 }}>{count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {step === 'error' && (
-            <div style={{ fontFamily:'DM Mono', fontSize:10, color:'var(--pink)', padding:'16px 0', lineHeight:1.6 }}>{msg}</div>
+            <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--pink)', padding: '16px 0', lineHeight: 1.7 }}>{msg}</div>
           )}
         </div>
 
@@ -199,8 +150,11 @@ export default function SproutImportModal({ isOpen, onClose, onDone }) {
           <button className="btn-ghost" onClick={onClose}>{step === 'done' ? 'Close' : 'Cancel'}</button>
           {step === 'config' && (
             <button className="btn-primary"
-              style={{ background:'var(--green)', color:'#000', boxShadow:'var(--win-out), 0 0 12px rgba(57,255,140,0.3)' }}
-              onClick={handleImport}>IMPORT POSTS</button>
+              disabled={platforms.length === 0}
+              style={{ background: 'var(--green)', color: '#000', boxShadow: 'var(--win-out), 0 0 12px rgba(57,255,140,0.3)' }}
+              onClick={handleImport}>
+              IMPORT POSTS
+            </button>
           )}
         </div>
       </div>
