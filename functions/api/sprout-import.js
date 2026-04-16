@@ -213,7 +213,15 @@ export async function onRequestPost({ request, env }) {
     }
 
     if (matchType) tagged++
-    else unassigned++
+    else {
+      // Untagged X posts are news headlines → Newsroom
+      // Truly unknown content from other platforms → Unassigned
+      if (platform === 'X') {
+        showName = 'Newsroom'
+        mediaType = 'Article'
+      }
+      unassigned++
+    }
 
     const isEditorial = showName === 'Editorials'
     const mediaType = resolveMediaType(platform, isEditorial)

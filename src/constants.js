@@ -5,6 +5,7 @@ export const SHOWS = [
   { name: 'The White Papers',      hex: '#39ff8c', bg: '#002218', tc: '#39ff8c' },
   { name: 'Standalones',           hex: '#b44eff', bg: '#1a0030', tc: '#b44eff' },
   { name: 'Editorials',            hex: '#00a8ff', bg: '#001428', tc: '#00a8ff' },
+  { name: 'Newsroom',              hex: '#e0d0ff', bg: '#12101e', tc: '#c0b4e8' },
 ]
 
 export const UNASSIGNED = { name: 'Unassigned', hex: '#4a4168', bg: '#0f0c1e', tc: '#4a4168' }

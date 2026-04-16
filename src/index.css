@@ -926,3 +926,21 @@ body {
 
 /* ── CAL POST META metrics ── */
 }
+
+/* ── NEWSROOM COLUMN ── */
+.newsroom-col .col-titlebar {
+  background: linear-gradient(90deg, #12101e, #1e1a32) !important;
+}
+.newsroom-post {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.newsroom-post:last-child { border-bottom: none; }
+.newsroom-post-title {
+  font-family: 'DM Mono'; font-size: 10px; color: var(--text);
+  line-height: 1.5; margin-bottom: 5px;
+}
+.newsroom-post-meta {
+  font-family: 'DM Mono'; font-size: 8px; color: var(--text3);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
