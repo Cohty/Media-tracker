@@ -916,16 +916,7 @@ body {
   font-family: 'DM Mono'; font-size: 8px; letter-spacing: 1px;
   color: var(--text3); text-transform: uppercase; margin-bottom: 4px;
 }
-.stat-value {
-  font-family: 'VT323'; font-size: 36px; line-height: 1; margin-bottom: 2px;
-}
-.stat-sub {
-  font-family: 'DM Mono'; font-size: 8px; color: var(--text3);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-
 /* ── CAL POST META metrics ── */
-}
 
 /* ── NEWSROOM COLUMN ── */
 .newsroom-col .col-titlebar {
