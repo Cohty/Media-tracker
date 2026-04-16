@@ -1,5 +1,20 @@
 import { useState, useEffect, useMemo } from 'react'
-import { XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts'
+
+// Only track these shows
+const TRACKED_SHOWS = ['The Crypto Beat', 'Layer One', 'The Big Brain Podcast']
+
+// Show name → our board show name mapping
+const SHOW_TO_BOARD = {
+  'The Crypto Beat': 'The Crypto Beat',
+  'Layer One': 'Layer One',
+  'The Big Brain Podcast': 'The Big Brain Podcast',
+}
+
+const SHOW_COLORS = {
+  'The Crypto Beat':       '#f0a020',
+  'Layer One':             '#ff2d78',
+  'The Big Brain Podcast': '#00e5ff',
+}
 
 async function transistorFetch(path, params = {}) {
   const qs = new URLSearchParams({ path, ...params })
@@ -8,86 +23,150 @@ async function transistorFetch(path, params = {}) {
   return res.json()
 }
 
-// Simple SVG line chart — no ResponsiveContainer
-function TrendChart({ data }) {
+// Pure SVG chart — bar or line — with hover tooltip
+function TrendChart({ data, chartType }) {
+  const [tooltip, setTooltip] = useState(null)
   if (!data || data.length === 0) return null
-  const w = Math.max(data.length * 30, 600), h = 160
-  const padL = 48, padR = 16, padT = 8, padB = 24
+
+  const w = 900, h = 180
+  const padL = 48, padR = 16, padT = 12, padB = 40
   const cw = w - padL - padR, ch = h - padT - padB
   const maxVal = Math.max(...data.map(d => d.downloads), 1)
 
   const pts = data.map((d, i) => ({
-    x: padL + (i / (data.length - 1 || 1)) * cw,
+    x: padL + (i / Math.max(data.length - 1, 1)) * cw,
     y: padT + ch * (1 - d.downloads / maxVal),
     ...d,
   }))
-
-  const path = pts.map((p, i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
-  const area = `${path} L${pts[pts.length-1].x},${padT+ch} L${pts[0].x},${padT+ch} Z`
 
   const ticks = [0, 0.5, 1].map(t => ({
     val: Math.round(maxVal * t),
     y: padT + ch * (1 - t),
   }))
 
-  return (
-    <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', overflow: 'visible' }}>
-      {ticks.map(t => (
-        <g key={t.val}>
-          <line x1={padL} y1={t.y} x2={padL+cw} y2={t.y} stroke="rgba(180,78,255,0.08)" strokeWidth={1} />
-          <text x={padL-4} y={t.y+3} textAnchor="end" fill="#4a4168" fontSize={9} fontFamily="DM Mono">
-            {t.val >= 1000 ? `${(t.val/1000).toFixed(1)}k` : t.val}
-          </text>
-        </g>
-      ))}
-      <defs>
-        <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#b44eff" stopOpacity={0.2} />
-          <stop offset="100%" stopColor="#b44eff" stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <path d={area} fill="url(#grad)" />
-      <path d={path} fill="none" stroke="#b44eff" strokeWidth={2} />
-      {pts.filter((_, i) => i % Math.ceil(pts.length / 10) === 0).map((p, i) => (
-        <text key={i} x={p.x} y={padT+ch+14} textAnchor="middle" fill="#4a4168" fontSize={8} fontFamily="DM Mono">
-          {p.date?.slice(0,5)}
-        </text>
-      ))}
-    </svg>
-  )
-}
+  // Show every ~7th label
+  const labelStep = Math.ceil(pts.length / 8)
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
+  const linePath = pts.map((p, i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  const areaPath = `${linePath} L${pts[pts.length-1].x},${padT+ch} L${pts[0].x},${padT+ch} Z`
+
   return (
-    <div style={{ background: '#0f0c1e', border: '1px solid rgba(180,78,255,0.4)', borderRadius: 4, padding: '8px 12px', fontFamily: 'DM Mono', fontSize: 10 }}>
-      <div style={{ color: '#e2d9ff', marginBottom: 4 }}>{label}</div>
-      {payload.map(p => <div key={p.dataKey} style={{ color: p.color }}>{p.name}: {Number(p.value).toLocaleString()}</div>)}
+    <div style={{ position: 'relative' }}>
+      {tooltip && (
+        <div style={{
+          position: 'absolute', zIndex: 10, pointerEvents: 'none',
+          left: Math.min(tooltip.svgX + 12, 700), top: 8,
+          background: '#0f0c1e', border: '1px solid rgba(180,78,255,0.5)',
+          borderRadius: 4, padding: '8px 12px', fontFamily: 'DM Mono', fontSize: 10,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.6)', minWidth: 160,
+        }}>
+          <div style={{ color: '#e2d9ff', marginBottom: 4 }}>{tooltip.date}</div>
+          <div style={{ color: '#b44eff' }}>Downloads: {tooltip.downloads.toLocaleString()}</div>
+          {tooltip.topEp && (
+            <div style={{ color: '#4a4168', fontSize: 9, marginTop: 4 }}>
+              Top ep: {tooltip.topEp}
+            </div>
+          )}
+        </div>
+      )}
+
+      <svg width="100%" viewBox={`0 0 ${w} ${h}`}
+        style={{ display: 'block', overflow: 'visible' }}
+        onMouseLeave={() => setTooltip(null)}>
+
+        {ticks.map(t => (
+          <g key={t.val}>
+            <line x1={padL} y1={t.y} x2={padL+cw} y2={t.y} stroke="rgba(180,78,255,0.07)" strokeWidth={1} />
+            <text x={padL-4} y={t.y+3} textAnchor="end" fill="#4a4168" fontSize={9} fontFamily="DM Mono">
+              {t.val >= 1000 ? `${(t.val/1000).toFixed(1)}k` : t.val}
+            </text>
+          </g>
+        ))}
+        <line x1={padL} y1={padT+ch} x2={padL+cw} y2={padT+ch} stroke="rgba(180,78,255,0.15)" strokeWidth={1}/>
+
+        {chartType === 'bar' ? (
+          pts.map((p, i) => {
+            const bw = Math.max(cw / pts.length - 2, 2)
+            const bh = ((p.downloads || 0) / maxVal) * ch
+            return (
+              <g key={i}
+                onMouseEnter={e => {
+                  const rect = e.currentTarget.closest('svg').getBoundingClientRect()
+                  setTooltip({ ...p, svgX: e.clientX - rect.left })
+                }}>
+                <rect x={p.x - bw/2} y={padT+ch-bh} width={bw} height={Math.max(bh,0)}
+                  fill="#b44eff" opacity={0.8} rx={1} />
+                <rect x={p.x - cw/pts.length/2} y={padT} width={cw/pts.length} height={ch}
+                  fill="transparent" />
+              </g>
+            )
+          })
+        ) : (
+          <g>
+            <defs>
+              <linearGradient id="tgrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#b44eff" stopOpacity={0.2}/>
+                <stop offset="100%" stopColor="#b44eff" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <path d={areaPath} fill="url(#tgrad)" />
+            <path d={linePath} fill="none" stroke="#b44eff" strokeWidth={2} />
+            {pts.map((p, i) => (
+              <circle key={i} cx={p.x} cy={p.y} r={3} fill="#b44eff"
+                onMouseEnter={e => {
+                  const rect = e.currentTarget.closest('svg').getBoundingClientRect()
+                  setTooltip({ ...p, svgX: e.clientX - rect.left })
+                }}
+              />
+            ))}
+          </g>
+        )}
+
+        {/* X axis date labels */}
+        {pts.filter((_, i) => i % labelStep === 0 || i === pts.length - 1).map((p, i) => (
+          <text key={i} x={p.x} y={padT+ch+18} textAnchor="middle"
+            fill="#4a4168" fontSize={9} fontFamily="DM Mono">
+            {p.date?.slice(0, 5)}
+          </text>
+        ))}
+      </svg>
     </div>
   )
 }
 
+const SORT_OPTIONS = [
+  { id: 'downloads', label: 'Downloads' },
+  { id: 'published', label: 'Publish Date' },
+]
+
 export default function PodcastView() {
   const [status, setStatus] = useState('loading')
-  const [errorMsg, setErrorMsg] = useState('')
   const [shows, setShows] = useState([])
   const [selectedShow, setSelectedShow] = useState(null)
   const [showAnalytics, setShowAnalytics] = useState(null)
   const [episodeAnalytics, setEpisodeAnalytics] = useState([])
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [range, setRange] = useState('30')
+  const [chartType, setChartType] = useState('line')
+  const [sortEpisodes, setSortEpisodes] = useState('downloads')
 
   useEffect(() => {
     transistorFetch('shows')
       .then(data => {
-        const list = data.data || []
-        setShows(list); setStatus('ready')
-        if (list.length > 0) setSelectedShow(list[0])
+        // Filter to only tracked shows
+        const all = data.data || []
+        const filtered = all.filter(s =>
+          TRACKED_SHOWS.some(name =>
+            s.attributes.title.toLowerCase().includes(name.toLowerCase()) ||
+            name.toLowerCase().includes(s.attributes.title.toLowerCase())
+          )
+        )
+        setShows(filtered.length > 0 ? filtered : all)
+        setStatus('ready')
+        const first = filtered[0] || all[0]
+        if (first) setSelectedShow(first)
       })
-      .catch(err => {
-        setStatus(err.message.includes('503') ? 'no-key' : 'error')
-        setErrorMsg(err.message)
-      })
+      .catch(err => setStatus(err.message.includes('503') ? 'no-key' : 'error'))
   }, [])
 
   useEffect(() => {
@@ -112,20 +191,24 @@ export default function PodcastView() {
     [showAnalytics]
   )
 
-  const episodeTotals = useMemo(() =>
-    episodeAnalytics.map(ep => ({
+  const episodeTotals = useMemo(() => {
+    const eps = episodeAnalytics.map(ep => ({
       ...ep,
       total: ep.downloads.reduce((s, d) => s + d.downloads, 0),
-    })).sort((a, b) => b.total - a.total),
-    [episodeAnalytics]
-  )
+    }))
+    if (sortEpisodes === 'downloads') return eps.sort((a, b) => b.total - a.total)
+    return eps.sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
+  }, [episodeAnalytics, sortEpisodes])
 
   const totalDownloads = trendData.reduce((s, d) => s + d.downloads, 0)
   const avgPerEp = episodeTotals.length > 0 ? Math.round(totalDownloads / episodeTotals.length) : 0
   const topEp = episodeTotals[0]
+  const showName = selectedShow?.attributes?.title || ''
+  const showColor = Object.entries(SHOW_COLORS).find(([k]) => showName.includes(k) || k.includes(showName))?.[1] || '#b44eff'
 
   if (status === 'loading') return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, fontFamily: 'DM Mono', fontSize: 10, color: 'var(--text3)' }}>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200,
+      fontFamily:'DM Mono', fontSize:10, color:'var(--text3)' }}>
       Connecting to Transistor.fm…
     </div>
   )
@@ -136,8 +219,8 @@ export default function PodcastView() {
         <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #400010, #a00030)' }}>
           <span className="win95-title">⚠ SETUP REQUIRED</span>
         </div>
-        <div style={{ padding: 24, fontFamily: 'DM Mono', fontSize: 10, color: 'var(--text2)', lineHeight: 1.8 }}>
-          Add <span style={{ color: 'var(--cyan)' }}>TRANSISTOR_API_KEY</span> in Cloudflare Pages → Settings → Environment Variables.
+        <div style={{ padding: 24, fontFamily:'DM Mono', fontSize:10, color:'var(--text2)', lineHeight:1.8 }}>
+          Add <span style={{ color:'var(--cyan)' }}>TRANSISTOR_API_KEY</span> in Cloudflare Pages → Settings → Environment Variables.
         </div>
       </div>
     </div>
@@ -155,6 +238,11 @@ export default function PodcastView() {
           {shows.map(show => (
             <button key={show.id}
               className={`podcast-show-btn${selectedShow?.id === show.id ? ' active' : ''}`}
+              style={selectedShow?.id === show.id ? {
+                color: SHOW_COLORS[show.attributes.title] || 'var(--purple)',
+                borderColor: (SHOW_COLORS[show.attributes.title] || '#b44eff') + '66',
+                boxShadow: `var(--win-out), 0 0 8px ${SHOW_COLORS[show.attributes.title] || '#b44eff'}33`,
+              } : {}}
               onClick={() => setSelectedShow(show)}>
               {show.attributes.title}
             </button>
@@ -164,13 +252,13 @@ export default function PodcastView() {
 
       {selectedShow && (
         <>
-          {/* Stats + range */}
+          {/* Stats */}
           <div className="podcast-header">
             {[
-              { label: 'Total Downloads', val: loadingAnalytics ? '…' : totalDownloads.toLocaleString(), sub: `last ${range} days`, accent: '#b44eff' },
+              { label: 'Total Downloads', val: loadingAnalytics ? '…' : totalDownloads.toLocaleString(), sub: `last ${range} days`, accent: showColor },
               { label: 'Episodes w/ Activity', val: loadingAnalytics ? '…' : episodeTotals.length, sub: 'in range', accent: '#00e5ff' },
               { label: 'Avg / Episode', val: loadingAnalytics ? '…' : avgPerEp.toLocaleString(), sub: 'downloads', accent: '#39ff8c' },
-              { label: 'Top Episode', val: loadingAnalytics ? '…' : (topEp?.total.toLocaleString() || '—'), sub: topEp ? topEp.title.slice(0, 22) + '…' : 'none', accent: '#f0e040' },
+              { label: 'Top Episode', val: loadingAnalytics ? '…' : (topEp?.total.toLocaleString() || '—'), sub: topEp ? topEp.title.slice(0, 24) + '…' : 'none', accent: '#f0e040' },
             ].map(({ label, val, sub, accent }) => (
               <div key={label} className="win95-window podcast-stat-card" style={{ '--accent': accent }}>
                 <div style={{ padding: 14 }}>
@@ -180,62 +268,85 @@ export default function PodcastView() {
                 </div>
               </div>
             ))}
-            <div className="win95-window" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div className="stat-label">DATE RANGE</div>
-              <div style={{ display: 'flex', gap: 5 }}>
-                {['7','14','30'].map(d => (
-                  <button key={d}
-                    className={`metric-btn${range === d ? ' active' : ''}`}
-                    style={range === d ? { color: 'var(--purple)', borderColor: 'rgba(180,78,255,0.4)' } : {}}
-                    onClick={() => setRange(d)}>{d}d</button>
-                ))}
-              </div>
-            </div>
           </div>
 
-          {/* Download trend */}
+          {/* Chart controls + chart */}
           <div className="win95-window">
-            <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001840, #003080)' }}>
-              <span className="win95-title">📈 DOWNLOAD TREND — {selectedShow.attributes.title}</span>
+            <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001840, #003080)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span className="win95-title">📈 DOWNLOAD TREND — {showName}</span>
+              <div style={{ display:'flex', gap:6, marginRight:8 }}>
+                {['7','14','30'].map(d => (
+                  <button key={d}
+                    className={`metric-btn${range===d?' active':''}`}
+                    style={range===d ? { color:'var(--purple)', borderColor:'rgba(180,78,255,0.4)', fontSize:8, padding:'2px 8px' } : { fontSize:8, padding:'2px 8px' }}
+                    onClick={() => setRange(d)}>{d}d</button>
+                ))}
+                <div style={{ width:1, background:'var(--border)', margin:'0 4px' }} />
+                <button className={`metric-btn${chartType==='line'?' active':''}`}
+                  style={chartType==='line'?{color:'var(--purple)',borderColor:'rgba(180,78,255,0.4)',fontSize:8,padding:'2px 8px'}:{fontSize:8,padding:'2px 8px'}}
+                  onClick={() => setChartType('line')}>╱ Line</button>
+                <button className={`metric-btn${chartType==='bar'?' active':''}`}
+                  style={chartType==='bar'?{color:'var(--purple)',borderColor:'rgba(180,78,255,0.4)',fontSize:8,padding:'2px 8px'}:{fontSize:8,padding:'2px 8px'}}
+                  onClick={() => setChartType('bar')}>▦ Bar</button>
+              </div>
             </div>
-            <div style={{ padding: 16, overflowX: 'auto' }}>
+            <div style={{ padding:'12px 16px', overflowX:'auto' }}>
               {loadingAnalytics
-                ? <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono', fontSize: 10, color: 'var(--text3)' }}>Loading…</div>
+                ? <div style={{ height:120, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'DM Mono', fontSize:10, color:'var(--text3)' }}>Loading…</div>
                 : trendData.length === 0
-                  ? <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono', fontSize: 10, color: 'var(--text3)' }}>No data for this period</div>
-                  : <TrendChart data={trendData} />
+                  ? <div style={{ height:120, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'DM Mono', fontSize:10, color:'var(--text3)' }}>No data for this period</div>
+                  : <TrendChart data={trendData} chartType={chartType} />
               }
             </div>
           </div>
 
-          {/* Episode breakdown — downloads only, no manual fields */}
+          {/* Episode breakdown */}
           <div className="win95-window">
-            <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001a20, #003040)' }}>
+            <div className="win95-titlebar" style={{ background:'linear-gradient(90deg, #001a20, #003040)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <span className="win95-title">📋 EPISODE BREAKDOWN</span>
+              <div style={{ display:'flex', gap:5, marginRight:8 }}>
+                {SORT_OPTIONS.map(s => (
+                  <button key={s.id}
+                    className={`metric-btn${sortEpisodes===s.id?' active':''}`}
+                    style={sortEpisodes===s.id?{color:'var(--yellow)',borderColor:'rgba(240,224,64,0.4)',fontSize:8,padding:'2px 8px'}:{fontSize:8,padding:'2px 8px'}}
+                    onClick={() => setSortEpisodes(s.id)}>{s.label}</button>
+                ))}
+              </div>
             </div>
             <div className="analytics-table-wrap">
-              <div className="analytics-table-header" style={{ gridTemplateColumns: '3fr 1fr 1fr' }}>
+              <div className="analytics-table-header" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
                 <div>EPISODE</div>
+                <div>SHOW</div>
                 <div>DOWNLOADS</div>
                 <div>PUBLISHED</div>
               </div>
               {loadingAnalytics ? (
-                <div className="empty-analytics" style={{ padding: 24 }}>Loading episodes…</div>
+                <div className="empty-analytics" style={{ padding:24 }}>Loading episodes…</div>
               ) : episodeTotals.length === 0 ? (
-                <div className="empty-analytics" style={{ padding: 24 }}>No episode activity in this period</div>
+                <div className="empty-analytics" style={{ padding:24 }}>No episode activity in this period</div>
               ) : episodeTotals.map(ep => (
-                <div key={ep.id} className="analytics-row" style={{ gridTemplateColumns: '3fr 1fr 1fr' }}>
+                <div key={ep.id} className="analytics-row" style={{ gridTemplateColumns:'2fr 1fr 1fr 1fr' }}>
                   <div className="analytics-cell">
                     <div className="analytics-cell-text">{ep.title}</div>
                   </div>
                   <div className="analytics-cell">
-                    <div style={{ fontFamily: 'VT323', fontSize: 24, color: 'var(--purple)', textShadow: '0 0 8px var(--purple)', lineHeight: 1 }}>
+                    <span style={{
+                      fontFamily:'DM Mono', fontSize:9, padding:'2px 8px', borderRadius:2,
+                      background: (showColor || '#b44eff') + '18',
+                      color: showColor || '#b44eff',
+                      border: `1px solid ${(showColor || '#b44eff')}44`,
+                    }}>
+                      {showName}
+                    </span>
+                  </div>
+                  <div className="analytics-cell">
+                    <div style={{ fontFamily:'VT323', fontSize:22, color:'var(--purple)', textShadow:'0 0 8px var(--purple)', lineHeight:1 }}>
                       {ep.total.toLocaleString()}
                     </div>
                   </div>
                   <div className="analytics-cell">
-                    <div className="analytics-cell-text" style={{ fontSize: 9 }}>
-                      {new Date(ep.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    <div className="analytics-cell-text" style={{ fontSize:9 }}>
+                      {new Date(ep.published_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}
                     </div>
                   </div>
                 </div>
@@ -244,8 +355,8 @@ export default function PodcastView() {
           </div>
 
           <div className="podcast-note">
-            <span style={{ color: 'var(--yellow)' }}>ℹ</span>
-            <span>Downloads = audio file deliveries via Transistor (industry standard IAB metric). Spotify streams and Apple listens are separate metrics only available inside those platforms' dashboards — they measure consumption, not delivery.</span>
+            <span style={{ color:'var(--yellow)' }}>ℹ</span>
+            <span>Downloads = audio file deliveries via Transistor (IAB standard). Spotify streams and Apple listens are only available inside those platforms' dashboards.</span>
           </div>
         </>
       )}
