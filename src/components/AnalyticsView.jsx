@@ -1,10 +1,7 @@
 import { useState, useMemo } from 'react'
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend
-} from 'recharts'
 import { SHOWS, MEDIA_TYPES } from '../constants'
 import { useSprout } from '../hooks/useSprout'
-import { ChartBoundary } from './ChartWrapper'
+import BarChartSVG from './BarChartSVG'
 import SproutImportModal from './SproutImportModal'
 
 const METRICS = [
@@ -13,25 +10,6 @@ const METRICS = [
   { id: 'impressions', label: 'Impressions', color: '#b44eff' },
 ]
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div style={{ background: '#0f0c1e', border: '1px solid rgba(180,78,255,0.4)', borderRadius: 4, padding: '8px 12px', fontFamily: 'DM Mono', fontSize: 10 }}>
-      <div style={{ color: '#e2d9ff', marginBottom: 4 }}>{label}</div>
-      {payload.map(p => (
-        <div key={p.dataKey} style={{ color: p.color }}>
-          {p.name}: {Number(p.value).toLocaleString()}
-        </div>
-      ))}
-    <SproutImportModal
-        isOpen={importOpen}
-        onClose={() => setImportOpen(false)}
-        onDone={() => { setImportOpen(false); window.location.reload() }}
-        onShowSummary={logId => { onImportDone?.(logId) }}
-      />
-    </div>
-  )
-}
 
 export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
   const [filterShow, setFilterShow] = useState('all')
@@ -196,23 +174,13 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
               <div>No stats yet — sync from Sprout or add manually below</div>
             </div>
           ) : (
-            <div style={{ width: '100%', height: 280 }}>
-              <BarChart width={Math.max(chartData.length * 60, 400)} height={260} data={chartData}
-                margin={{ top: 8, right: 8, left: -10, bottom: 60 }}
-                style={{ margin: '0 auto' }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(180,78,255,0.08)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fill: '#4a4168', fontSize: 9, fontFamily: 'DM Mono' }}
-                  angle={-40} textAnchor="end" interval={0}
-                  axisLine={{ stroke: 'rgba(180,78,255,0.15)' }} tickLine={false} />
-                <YAxis tick={{ fill: '#4a4168', fontSize: 9, fontFamily: 'DM Mono' }}
-                  axisLine={false} tickLine={false}
-                  tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(180,78,255,0.05)' }} />
-                <Legend wrapperStyle={{ fontFamily: 'DM Mono', fontSize: 10, color: '#8b7eb8', paddingTop: 8 }} />
-                {activeMetrics.includes('views') && <Bar dataKey="views" name="Views" fill="#00e5ff" radius={[2,2,0,0]} maxBarSize={40} />}
-                {activeMetrics.includes('engagement') && <Bar dataKey="engagement" name="Engagement" fill="#ff2d78" radius={[2,2,0,0]} maxBarSize={40} />}
-                {activeMetrics.includes('impressions') && <Bar dataKey="impressions" name="Impressions" fill="#b44eff" radius={[2,2,0,0]} maxBarSize={40} />}
-              </BarChart>
+            <div style={{ overflowX: 'auto' }}>
+              <BarChartSVG
+                data={chartData}
+                activeMetrics={activeMetrics}
+                width={Math.max(chartData.length * 80, 800)}
+                height={260}
+              />
             </div>
           )}
         </div>
