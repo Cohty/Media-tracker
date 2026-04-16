@@ -124,12 +124,22 @@ function TrendChart({ data, chartType }) {
         )}
 
         {/* X axis date labels */}
-        {pts.filter((_, i) => i % labelStep === 0 || i === pts.length - 1).map((p, i) => (
-          <text key={i} x={p.x} y={padT+ch+18} textAnchor="middle"
-            fill="#4a4168" fontSize={9} fontFamily="DM Mono">
-            {p.date?.slice(0, 5)}
-          </text>
-        ))}
+        {pts.filter((_, i) => i % labelStep === 0 || i === pts.length - 1).map((p, i) => {
+          // Convert "DD-MM-YYYY" or "MM-DD-YYYY" to "Mon DD"
+          const parts = (p.date || '').split('-')
+          let label = p.date?.slice(0,5) || ''
+          if (parts.length === 3) {
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+            const d = parseInt(parts[0]), m = parseInt(parts[1])
+            label = `${months[(m-1)%12]} ${d}`
+          }
+          return (
+            <text key={i} x={p.x} y={padT+ch+18} textAnchor="middle"
+              fill="#4a4168" fontSize={9} fontFamily="DM Mono">
+              {label}
+            </text>
+          )
+        })}
       </svg>
     </div>
   )

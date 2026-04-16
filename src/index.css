@@ -884,3 +884,48 @@ body {
 .batch-btn--export:hover { background: rgba(240,224,64,0.14); }
 
 .card-checkbox.partial { background: rgba(180,78,255,0.4); border-color: var(--purple); }
+
+/* ── DATE RANGE BAR ── */
+.date-range-bar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 6px 24px;
+}
+.date-range-inner {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.date-range-presets { display: flex; gap: 5px; flex-wrap: wrap; }
+.date-input {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 4px 8px; font-family: 'DM Mono'; font-size: 10px; color: var(--text);
+  outline: none; box-shadow: var(--win-in); cursor: pointer;
+}
+.date-input:focus { border-color: var(--cyan); }
+
+/* ── UPDATED STATSBAR (6 cards) ── */
+.statsbar {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 0; border-bottom: 1px solid var(--border2);
+}
+@media (max-width: 1200px) { .statsbar { grid-template-columns: repeat(3, 1fr); } }
+.stat-card {
+  padding: 12px 20px; border-right: 1px solid var(--border2);
+  background: var(--surface);
+}
+.stat-card:last-child { border-right: none; }
+.stat-label {
+  font-family: 'DM Mono'; font-size: 8px; letter-spacing: 1px;
+  color: var(--text3); text-transform: uppercase; margin-bottom: 4px;
+}
+.stat-value {
+  font-family: 'VT323'; font-size: 36px; line-height: 1; margin-bottom: 2px;
+}
+.stat-sub {
+  font-family: 'DM Mono'; font-size: 8px; color: var(--text3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── CAL POST META metrics ── */
+.cal-post-meta {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-family: 'DM Mono'; font-size: 9px; color: var(--text3);
+}

@@ -171,7 +171,24 @@ export default function CalendarView({ posts }) {
                           <div className="cal-post-dot" style={{ background: showColors[post.show] || '#b44eff' }} />
                           <div className="cal-post-info">
                             <div className="cal-post-title">{post.title}</div>
-                            <div className="cal-post-meta">{post.show} · {post.platform} · {post.date}</div>
+                            <div className="cal-post-meta">
+                              <span>{post.show} · {post.platform} · {post.date}</span>
+                              {post.stats?.views && Number(post.stats.views) > 0 && (
+                                <span style={{ color:'#00e5ff' }}>
+                                  👁 {Number(post.stats.views)>=1000?`${(Number(post.stats.views)/1000).toFixed(1)}k`:post.stats.views}
+                                </span>
+                              )}
+                              {post.stats?.engagement && Number(post.stats.engagement) > 0 && (
+                                <span style={{ color:'#ff2d78' }}>
+                                  💬 {Number(post.stats.engagement)>=1000?`${(Number(post.stats.engagement)/1000).toFixed(1)}k`:post.stats.engagement}
+                                </span>
+                              )}
+                              {post.stats?.impressions && Number(post.stats.impressions) > 0 && (
+                                <span style={{ color:'#b44eff' }}>
+                                  📢 {Number(post.stats.impressions)>=1000?`${(Number(post.stats.impressions)/1000).toFixed(1)}k`:post.stats.impressions}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           {post.mediaType && (
                             <span className="cal-post-type">{post.mediaType}</span>

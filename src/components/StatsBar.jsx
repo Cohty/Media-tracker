@@ -1,48 +1,49 @@
-import { PLATFORMS } from '../constants'
+import { useMemo } from 'react'
 
-export default function StatsBar({ posts }) {
-  const total = posts.length
+export default function StatsBar({ posts, allPosts, rangeLabel }) {
+  const displayPosts = posts // filtered by date range
 
-  const activeShows = new Set(posts.map(p => p.show)).size
+  const stats = useMemo(() => {
+    const platformCount = {}
+    let totalViews = 0, totalEngagement = 0, totalImpressions = 0
 
-  const platformCounts = posts.reduce((acc, p) => {
-    acc[p.platform] = (acc[p.platform] || 0) + 1
-    return acc
-  }, {})
-  const topPlatform = Object.entries(platformCounts).sort((a, b) => b[1] - a[1])[0]
+    displayPosts.forEach(p => {
+      platformCount[p.platform] = (platformCount[p.platform] || 0) + 1
+      totalViews       += Number(p.stats?.views)       || 0
+      totalEngagement  += Number(p.stats?.engagement)  || 0
+      totalImpressions += Number(p.stats?.impressions) || 0
+    })
 
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-  const thisWeek = posts.filter(p => p.ts >= weekAgo).length
+    const topPlatform = Object.entries(platformCount).sort((a,b) => b[1]-a[1])[0]
+    const activeShows = new Set(displayPosts.map(p => p.show).filter(Boolean)).size
 
-  const pm = topPlatform ? (PLATFORMS[topPlatform[0]] || PLATFORMS.Other) : null
+    function fmt(n) {
+      if (n >= 1000000) return `${(n/1000000).toFixed(1)}M`
+      if (n >= 1000) return `${(n/1000).toFixed(1)}k`
+      return n > 0 ? String(n) : '—'
+    }
+
+    return { topPlatform, activeShows, totalViews: fmt(totalViews), totalEngagement: fmt(totalEngagement), totalImpressions: fmt(totalImpressions), platformCount }
+  }, [displayPosts])
+
+  const cards = [
+    { label: 'TOTAL POSTS', value: displayPosts.length, sub: rangeLabel || 'all time', color: 'var(--purple)' },
+    { label: 'SHOWS ACTIVE', value: `${stats.activeShows}`, sub: 'with content', color: 'var(--cyan)' },
+    { label: 'TOP PLATFORM', value: stats.topPlatform?.[0] || '—', sub: stats.topPlatform ? `${stats.topPlatform[1]} posts` : 'none yet', color: '#f0a020' },
+    { label: 'TOTAL VIEWS', value: stats.totalViews, sub: 'video views', color: '#00e5ff' },
+    { label: 'TOTAL ENGAGEMENT', value: stats.totalEngagement, sub: 'likes · comments · shares', color: '#ff2d78' },
+    { label: 'TOTAL IMPRESSIONS', value: stats.totalImpressions, sub: 'all platforms', color: '#b44eff' },
+  ]
 
   return (
-    <div className="stats-bar">
-      <div className="stat-card" style={{ '--accent': '#b44eff' }}>
-        <div className="stat-label">Total Posts</div>
-        <div className="stat-value">{total}</div>
-        <div className="stat-sub">all time</div>
-      </div>
-
-      <div className="stat-card" style={{ '--accent': '#00e5ff' }}>
-        <div className="stat-label">Shows Active</div>
-        <div className="stat-value">{activeShows}<span style={{ fontSize: 20, opacity: 0.4 }}>/5</span></div>
-        <div className="stat-sub">with content</div>
-      </div>
-
-      <div className="stat-card" style={{ '--accent': pm?.color || '#4a4168' }}>
-        <div className="stat-label">Top Platform</div>
-        <div className="stat-value" style={{ fontSize: 28 }}>
-          {topPlatform ? topPlatform[0] : '—'}
+    <div className="statsbar">
+      {cards.map(({ label, value, sub, color }) => (
+        <div key={label} className="stat-card">
+          <div className="stat-label">{label}</div>
+          <div className="stat-value" style={{ color, textShadow: `0 0 10px ${color}` }}>{value}</div>
+          <div className="stat-sub">{sub}</div>
         </div>
-        <div className="stat-sub">{topPlatform ? `${topPlatform[1]} post${topPlatform[1] !== 1 ? 's' : ''}` : 'none yet'}</div>
-      </div>
-
-      <div className="stat-card" style={{ '--accent': '#f0e040' }}>
-        <div className="stat-label">This Week</div>
-        <div className="stat-value">{thisWeek}</div>
-        <div className="stat-sub">last 7 days</div>
-      </div>
+      ))}
     </div>
   )
 }

@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { SHOWS } from './constants'
 import { usePosts } from './hooks/usePosts'
 import { useUser } from './hooks/useUser'
 import Topbar from './components/Topbar'
 import StatsBar from './components/StatsBar'
+import DateRangeBar, { useDateRange } from './components/DateRangeBar'
 import Nav from './components/Nav'
 import Board from './components/Board'
 import CalendarView from './components/CalendarView'
@@ -28,7 +29,16 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [summaryLogId, setSummaryLogId] = useState(null)
 
-  const activeShowCount = SHOWS.filter(s => posts.some(p => p.show === s.name)).length
+  const { preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd, range } = useDateRange()
+
+  // Filter posts by date range for board + statsbar
+  const rangeFilteredPosts = useMemo(() => {
+    if (preset === 'all') return posts
+    return posts.filter(p => {
+      const ts = p.ts || 0
+      return ts >= range.start.getTime() && ts <= range.end.getTime()
+    })
+  }, [posts, preset, range])
 
   function showToast(msg, type = 'info') {
     setToast({ msg, type })
@@ -44,21 +54,13 @@ export default function App() {
   }
 
   async function handleBatchDelete(ids) {
-    await fetch('/api/posts', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids }),
-    })
+    await fetch('/api/posts', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) })
     await refetch()
     showToast(`${ids.length} posts deleted`, 'success')
   }
 
   async function handleBatchRetag(ids, updates) {
-    await fetch('/api/posts', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids, updates }),
-    })
+    await fetch('/api/posts', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, updates }) })
     await refetch()
     showToast(`${ids.length} posts updated`, 'success')
   }
@@ -97,25 +99,33 @@ export default function App() {
 
   return (
     <>
-      <Topbar postCount={posts.length} showCount={activeShowCount} onLogClick={() => setModalOpen(true)}
-        user={user} pendingCount={pendingCount} onReviewClick={() => setReviewOpen(true)} />
-      <StatsBar posts={posts} />
+      <Topbar postCount={posts.length} showCount={SHOWS.filter(s => posts.some(p => p.show === s.name)).length}
+        onLogClick={() => setModalOpen(true)} user={user} pendingCount={pendingCount}
+        onReviewClick={() => setReviewOpen(true)} />
+
+      <StatsBar posts={rangeFilteredPosts} allPosts={posts} rangeLabel={preset !== 'all' ? range.label : null} />
+
       <Nav activeView={activeView} onChangeView={setActiveView} />
 
-      {selectedIds.size > 0 && (
-        <BatchBar
-          selectedIds={selectedIds}
-          posts={posts}
-          onDelete={handleBatchDelete}
-          onRetag={handleBatchRetag}
-          onClear={() => setSelectedIds(new Set())}
+      {/* Date range bar — only on board view */}
+      {activeView === 'board' && (
+        <DateRangeBar
+          preset={preset} setPreset={setPreset}
+          customStart={customStart} setCustomStart={setCustomStart}
+          customEnd={customEnd} setCustomEnd={setCustomEnd}
+          range={range} postCount={rangeFilteredPosts.length}
         />
       )}
 
+      {selectedIds.size > 0 && (
+        <BatchBar selectedIds={selectedIds} posts={posts}
+          onDelete={handleBatchDelete} onRetag={handleBatchRetag}
+          onClear={() => setSelectedIds(new Set())} />
+      )}
+
       {activeView === 'board' && (
-        <Board posts={posts} onDelete={handleDeletePost} onMove={setMovingPost}
-          highlightedPostId={highlightedPostId}
-          selectedIds={selectedIds} onToggleSelect={toggleSelect} />
+        <Board posts={rangeFilteredPosts} onDelete={handleDeletePost} onMove={setMovingPost}
+          highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect} />
       )}
       {activeView === 'calendar'  && <CalendarView posts={posts} />}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={handleUpdatePost}
@@ -132,11 +142,7 @@ export default function App() {
         <ReviewPanel onClose={() => setReviewOpen(false)}
           onApproved={() => { refetch(); setPendingCount(c => Math.max(0, c-1)) }} />
       )}
-      <ImportSummaryModal
-        logId={summaryLogId}
-        isOpen={!!summaryLogId}
-        onClose={() => setSummaryLogId(null)}
-      />
+      <ImportSummaryModal logId={summaryLogId} isOpen={!!summaryLogId} onClose={() => setSummaryLogId(null)} />
     </>
   )
 }
