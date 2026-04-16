@@ -12,103 +12,87 @@ export async function onRequestGet({ request, env }) {
   const fmt = d => d.toISOString().split('.')[0]
   const s = fmt(start), e = fmt(now)
 
-  const authBearer = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-  const authToken  = { 'Authorization': `Token ${token}`,  'Accept': 'application/json' }
-
+  const auth = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' }
   const base = `${BASE_URL}/${customerId}/analytics/posts`
   const results = []
 
-  async function test(label, url, opts) {
+  async function test(label, body) {
     try {
-      const r = await fetch(url, opts)
+      const r = await fetch(base, { method: 'POST', headers: auth, body: JSON.stringify(body) })
       const text = await r.text()
       let data; try { data = JSON.parse(text) } catch { data = text }
-      results.push({ test: label, status: r.status, data })
+      results.push({ test: label, status: r.status, body, data })
     } catch(err) {
       results.push({ test: label, error: err.message })
     }
   }
 
-  // 1. Form-encoded body (application/x-www-form-urlencoded)
-  const formBody = new URLSearchParams({
-    'filters[0][field]': 'customer_profile_id',
-    'filters[0][operator]': 'in',
-    'filters[0][value][0]': String(PROFILE_ID),
-    start_time: s,
-    end_time: e,
-    'metrics[0]': 'impressions',
-    page: '1',
-    per_page: '5',
-  })
-  await test('POST form-encoded', base, {
-    method: 'POST',
-    headers: { ...authBearer, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: formBody.toString(),
+  // Based on debug results:
+  // - No filters → parses OK, validation fails with "must have created_time filter"
+  // - filters as [{field,operator,value}] objects → JSON deserialization fails (START_OBJECT)
+  // Conclusion: filters must NOT be an array of objects. Try other formats:
+
+  // 1. filters as array of strings (colon-separated)
+  await test('filters as colon strings', {
+    filters: [`customer_profile_id:in:${PROFILE_ID}`, `created_time:between:${s},${e}`],
+    metrics: ['impressions', 'engagements'],
+    page: 1, per_page: 5,
   })
 
-  // 2. JSON but completely flat — no nested objects
-  await test('POST flat JSON (no objects)', base, {
-    method: 'POST',
-    headers: { ...authBearer, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      customer_profile_id: PROFILE_ID,
-      start_time: s,
-      end_time: e,
-      metrics: 'impressions',
-    }),
+  // 2. filters as plain object map
+  await test('filters as object map', {
+    filters: {
+      customer_profile_id: [PROFILE_ID],
+      created_time: { start: s, end: e },
+    },
+    metrics: ['impressions'],
+    page: 1, per_page: 5,
   })
 
-  // 3. JSON with customer_profile_id as comma-separated string
-  await test('POST profile as string', base, {
-    method: 'POST',
-    headers: { ...authBearer, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      customer_profile_id: String(PROFILE_ID),
-      start_time: s,
-      end_time: e,
-      metrics: ['impressions'],
-    }),
+  // 3. Top-level fields with created_time as object
+  await test('top-level with created_time object', {
+    customer_profile_id: [PROFILE_ID],
+    created_time: { start: s, end: e },
+    metrics: ['impressions'],
+    page: 1, per_page: 5,
   })
 
-  // 4. POST with Authorization: Token (not Bearer)
-  await test('POST Token auth (not Bearer)', base, {
-    method: 'POST',
-    headers: { ...authToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      filters: [{ field: 'customer_profile_id', operator: 'in', value: [PROFILE_ID] }],
-      start_time: s,
-      end_time: e,
-      metrics: ['impressions'],
-    }),
+  // 4. Top-level fields with created_time as string range
+  await test('top-level with created_time string', {
+    customer_profile_id: [PROFILE_ID],
+    created_time: `${s},${e}`,
+    metrics: ['impressions'],
+    page: 1, per_page: 5,
   })
 
-  // 5. JSON with filters as a JSON string (not array)
-  await test('POST filters as JSON string', base, {
-    method: 'POST',
-    headers: { ...authBearer, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      filters: JSON.stringify([{ field: 'customer_profile_id', operator: 'in', value: [PROFILE_ID] }]),
-      start_time: s,
-      end_time: e,
-      metrics: ['impressions'],
-    }),
+  // 5. filters as array of {field, value} only (no operator)
+  await test('filters no operator', {
+    filters: [
+      { field: 'customer_profile_id', value: [PROFILE_ID] },
+      { field: 'created_time', value: [s, e] },
+    ],
+    metrics: ['impressions'],
+    page: 1, per_page: 5,
   })
 
-  // 6. POST with query params + empty body
-  const qs = new URLSearchParams({ start_time: s, end_time: e })
-  await test('POST query params + JSON body', `${base}?${qs}`, {
-    method: 'POST',
-    headers: { ...authBearer, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      filters: [{ field: 'customer_profile_id', operator: 'in', value: [PROFILE_ID] }],
-      metrics: ['impressions'],
-    }),
+  // 6. filters value as string not array (the START_OBJECT hint suggests value expects String)
+  await test('filters value as string', {
+    filters: [
+      { field: 'customer_profile_id', operator: 'in', value: String(PROFILE_ID) },
+      { field: 'created_time', operator: 'between', value: `${s},${e}` },
+    ],
+    metrics: ['impressions'],
+    page: 1, per_page: 5,
   })
 
-  // 7. Try the profile analytics endpoint instead (GET)
-  await test('GET profile analytics (different endpoint)', `${BASE_URL}/${customerId}/analytics`, {
-    method: 'GET',
-    headers: authBearer,
+  // 7. created_time filter separate from profile filter, both as strings
+  await test('all filter values as strings', {
+    filters: [
+      { field: 'customer_profile_id', operator: 'eq', value: String(PROFILE_ID) },
+      { field: 'created_time', operator: 'gte', value: s },
+    ],
+    metrics: ['impressions'],
+    page: 1, per_page: 5,
   })
 
   return new Response(JSON.stringify({ results }, null, 2), { headers: CORS })
