@@ -367,8 +367,17 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
 
       {/* ── TABLE ── */}
       <div className="win95-window">
-        <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001a20, #003040)' }}>
+        <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001a20, #003040)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span className="win95-title">📋 POST STATS — synced from Sprout or edit manually</span>
+          <div style={{ display:'flex', gap:5, marginRight:8 }}>
+            {SORT_OPTIONS.map(s => (
+              <button key={s.id} className={`metric-btn${sortBy === s.id ? ' active' : ''}`}
+                style={sortBy === s.id
+                  ? { color:'var(--yellow)', borderColor:'rgba(240,224,64,0.4)', fontSize:8, padding:'2px 8px' }
+                  : { fontSize:8, padding:'2px 8px' }}
+                onClick={() => setSortBy(s.id)}>{s.label}</button>
+            ))}
+          </div>
         </div>
         <div className="analytics-table-wrap">
           <div className="analytics-table-header">
