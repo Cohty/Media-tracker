@@ -42,7 +42,7 @@ export default function StatsBar({ posts, allPosts, rangeLabel }) {
 
   return (
     <div className="statsbar">
-      {cards.map(({ label, value, sub, color }) => (
+      {cards.map(({ label, value, sub, color, tooltip }) => (
         <div key={label} className="stat-card stat-card--hoverable"
           title={tooltip || undefined}
           style={{ cursor: tooltip ? 'help' : 'default', position: 'relative' }}>
