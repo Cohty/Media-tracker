@@ -23,6 +23,21 @@ async function sproutPost(path, body) {
   return data
 }
 
+// Normalize URLs so x.com↔twitter.com and query params don't block matching
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url.toLowerCase().trim())
+    // x.com and twitter.com are the same
+    u.hostname = u.hostname.replace('x.com', 'twitter.com')
+    // Strip all query params (Sprout strips ?s=20 etc.)
+    u.search = ''
+    // Strip trailing slash
+    return u.toString().replace(/\/$/, '')
+  } catch {
+    return url.toLowerCase().trim()
+  }
+}
+
 export function useSprout() {
   const [profileIds, setProfileIds] = useState([])
   const [status, setStatus] = useState('loading')
@@ -47,58 +62,60 @@ export function useSprout() {
   }, [])
 
   async function syncPostStats(posts, onProgress) {
-    if (profileIds.length === 0) {
-      throw new Error('No Sprout profile IDs found.')
-    }
+    if (profileIds.length === 0) throw new Error('No Sprout profile IDs found.')
 
     const now = new Date()
     const start = new Date(now)
     start.setDate(now.getDate() - 90)
+    const fmt = d => d.toISOString().split('.')[0]
 
-    // Sprout filter format: "field.operator(values)"
-    // Date range uses .. (two dots) between start and end
-    const fmt = d => d.toISOString().replace('Z', '').split('.')[0]
     const profileFilter = `customer_profile_id.eq(${profileIds.join(', ')})`
     const dateFilter = `created_time.in(${fmt(start)}..${fmt(now)})`
 
-    const payload = {
-      filters: [profileFilter, dateFilter],
-      fields: ['perma_link', 'created_time', 'text'],
-      metrics: [
-        'lifetime.impressions',
-        'lifetime.engagements',
-        'lifetime.video_views',
-        'lifetime.likes',
-      ],
-      page: 1,
-      limit: 200,
-    }
+    // Fetch all pages
+    let allPosts = []
+    let page = 1
+    let totalPages = 1
 
     onProgress?.('Fetching post stats from Sprout…')
-    const data = await sproutPost('analytics/posts', payload)
-    const sproutPosts = data?.data || []
-    onProgress?.(`Got ${sproutPosts.length} posts from Sprout, matching…`)
 
-    // Build URL → stats map using perma_link
+    do {
+      const data = await sproutPost('analytics/posts', {
+        filters: [profileFilter, dateFilter],
+        fields: ['perma_link', 'created_time'],
+        metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.likes'],
+        page,
+        limit: 200,
+      })
+      allPosts = allPosts.concat(data?.data || [])
+      totalPages = data?.paging?.total_pages || 1
+      onProgress?.(`Fetched page ${page}/${totalPages} (${allPosts.length} posts so far)…`)
+      page++
+    } while (page <= Math.min(totalPages, 10)) // cap at 10 pages = 2000 posts
+
+    onProgress?.(`Matching ${allPosts.length} Sprout posts to your tracker…`)
+
+    // Build normalized URL → stats map
     const statsMap = {}
-    sproutPosts.forEach(sp => {
+    allPosts.forEach(sp => {
       const permalink = sp.perma_link || sp.permalink || ''
       const metrics = sp.metrics || {}
       if (permalink) {
-        statsMap[permalink.toLowerCase().trim()] = {
-          views:       String(metrics['lifetime.video_views'] ?? metrics['lifetime.impressions'] ?? ''),
-          engagement:  String(metrics['lifetime.engagements'] ?? ''),
-          impressions: String(metrics['lifetime.impressions'] ?? ''),
+        const normUrl = normalizeUrl(permalink)
+        statsMap[normUrl] = {
+          views:       String(metrics['lifetime.video_views'] || metrics['lifetime.impressions'] || ''),
+          engagement:  String(metrics['lifetime.engagements'] || ''),
+          impressions: String(metrics['lifetime.impressions'] || ''),
           lastSynced:  Date.now(),
         }
       }
     })
 
-    // Match our stored posts by URL
+    // Match our stored posts using normalized URLs
     const results = []
     for (const post of posts) {
-      const url = (post.url || '').toLowerCase().trim()
-      if (statsMap[url]) results.push({ id: post.id, stats: statsMap[url] })
+      const normUrl = normalizeUrl(post.url || '')
+      if (statsMap[normUrl]) results.push({ id: post.id, stats: statsMap[normUrl] })
     }
 
     onProgress?.(`Matched ${results.length} of ${posts.length} posts`)
