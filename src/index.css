@@ -882,3 +882,5 @@ body {
   background: rgba(240,224,64,0.06);
 }
 .batch-btn--export:hover { background: rgba(240,224,64,0.14); }
+
+.card-checkbox.partial { background: rgba(180,78,255,0.4); border-color: var(--purple); }

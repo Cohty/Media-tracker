@@ -8,7 +8,7 @@ const TYPE_COLORS = {
 }
 const CLIP_COLOR = { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.25)' }
 
-function PostRow({ post, onDelete, onMove, highlighted }) {
+function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect }) {
   const [confirming, setConfirming] = useState(false)
   const pm = PLATFORMS[post.platform] || PLATFORMS.Other
   const isClip = post.mediaType === 'Clip'
@@ -16,7 +16,19 @@ function PostRow({ post, onDelete, onMove, highlighted }) {
   const tc = isClip ? CLIP_COLOR : (post.mediaType ? TYPE_COLORS[post.mediaType] : null)
 
   return (
-    <div className={`ep-post-row${highlighted ? ' ep-post-row--highlighted' : ''}`}>
+    <div className={`ep-post-row${highlighted ? ' ep-post-row--highlighted' : ''}${selected ? ' selected' : ''}`}
+      style={{ position: 'relative' }}>
+
+      {/* Checkbox */}
+      {onToggleSelect && (
+        <div
+          className={`card-checkbox${selected ? ' checked' : ''}`}
+          style={{ position: 'absolute', top: 6, right: 6 }}
+          onClick={e => { e.stopPropagation(); onToggleSelect(post.id) }}>
+          {selected ? '✓' : ''}
+        </div>
+      )}
+
       <div className="card-pills-row" style={{ marginBottom: 5 }}>
         <div className="p-pill" style={{ background: pm.bg, color: pm.color }}>{post.platform}</div>
         {tc && <div className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>{typeLabel}</div>}
@@ -43,11 +55,10 @@ function PostRow({ post, onDelete, onMove, highlighted }) {
   )
 }
 
-export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDelete, onMove, highlightedPostId }) {
+export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect }) {
   const containsHighlighted = posts.some(p => p.id === highlightedPostId)
   const [expanded, setExpanded] = useState(false)
 
-  // Auto-expand if a post inside is highlighted
   useEffect(() => {
     if (containsHighlighted) setExpanded(true)
   }, [containsHighlighted])
@@ -62,6 +73,19 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
   const otherTypes = [...new Set(posts.filter(p => p.mediaType !== 'Clip').map(p => p.mediaType).filter(Boolean))]
   const displayLabel = isEpisode ? `EP ${label}` : (label.length > 26 ? label.slice(0, 26) + '…' : label)
 
+  // How many in this group are selected
+  const selectedCount = posts.filter(p => selectedIds?.has(p.id)).length
+  const allSelected = selectedCount === posts.length && posts.length > 0
+
+  function toggleAll(e) {
+    e.stopPropagation()
+    if (!onToggleSelect) return
+    posts.forEach(p => {
+      const isSelected = selectedIds?.has(p.id)
+      if (allSelected ? isSelected : !isSelected) onToggleSelect(p.id)
+    })
+  }
+
   return (
     <div className={`ep-group${expanded ? ' expanded' : ''}${containsHighlighted ? ' ep-group--highlighted' : ''}`}>
       <div className="ep-group-header" onClick={() => setExpanded(v => !v)}>
@@ -70,6 +94,16 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
             {displayLabel}
           </span>
           <span className="ep-group-count">{posts.length} post{posts.length !== 1 ? 's' : ''}</span>
+          {/* Batch select all in group */}
+          {onToggleSelect && (
+            <div
+              className={`card-checkbox${allSelected ? ' checked' : selectedCount > 0 ? ' partial' : ''}`}
+              style={{ position: 'relative', top: 'unset', right: 'unset', marginLeft: 4, flexShrink: 0 }}
+              onClick={toggleAll}
+              title={allSelected ? 'Deselect all in group' : 'Select all in group'}>
+              {allSelected ? '✓' : selectedCount > 0 ? '–' : ''}
+            </div>
+          )}
         </div>
         <div className="ep-group-right">
           <span className="ep-group-chevron">{expanded ? '▲' : '▼'}</span>
@@ -91,7 +125,10 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
           {posts.map((post, i) => (
             <div key={post.id}>
               {i > 0 && <div className="ep-post-divider" />}
-              <PostRow post={post} onDelete={onDelete} onMove={onMove} highlighted={post.id === highlightedPostId} />
+              <PostRow post={post} onDelete={onDelete} onMove={onMove}
+                highlighted={post.id === highlightedPostId}
+                selected={selectedIds?.has(post.id)}
+                onToggleSelect={onToggleSelect} />
             </div>
           ))}
         </div>
