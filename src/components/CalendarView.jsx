@@ -162,6 +162,32 @@ export default function CalendarView({ posts }) {
                       </div>
                     ))}
                   </div>
+                  {/* Metric totals for selected range */}
+                  {(() => {
+                    let views = 0, engagement = 0, impressions = 0
+                    filteredPosts.forEach(p => {
+                      views       += Number(p.stats?.views)       || 0
+                      engagement  += Number(p.stats?.engagement)  || 0
+                      impressions += Number(p.stats?.impressions) || 0
+                    })
+                    const fmt = n => n >= 1000000 ? `${(n/1000000).toFixed(1)}M` : n >= 1000 ? `${(n/1000).toFixed(1)}k` : n > 0 ? String(n) : '—'
+                    return (views > 0 || engagement > 0 || impressions > 0) ? (
+                      <div style={{ display:'flex', gap:16, padding:'8px 0 4px', borderTop:'1px solid var(--border)', marginTop:4, flexWrap:'wrap' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.8px' }}>Total Views</span>
+                          <span style={{ fontFamily:'VT323', fontSize:22, color:'#00e5ff', textShadow:'0 0 8px #00e5ff', lineHeight:1 }}>{fmt(views)}</span>
+                        </div>
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.8px' }}>Engagement</span>
+                          <span style={{ fontFamily:'VT323', fontSize:22, color:'#ff2d78', textShadow:'0 0 8px #ff2d78', lineHeight:1 }}>{fmt(engagement)}</span>
+                        </div>
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.8px' }}>Impressions</span>
+                          <span style={{ fontFamily:'VT323', fontSize:22, color:'#b44eff', textShadow:'0 0 8px #b44eff', lineHeight:1 }}>{fmt(impressions)}</span>
+                        </div>
+                      </div>
+                    ) : null
+                  })()}
                   {filteredPosts.length === 0 ? (
                     <div className="cal-empty">No posts in this range</div>
                   ) : (
