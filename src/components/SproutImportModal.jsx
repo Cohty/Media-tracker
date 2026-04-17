@@ -13,7 +13,7 @@ const PLATFORM_OPTIONS = [
 
 export default function SproutImportModal({ isOpen, onClose, onDone, onShowSummary }) {
   const [days, setDays] = useState(365)
-  const [platforms, setPlatforms] = useState(['YouTube', 'TikTok'])
+  const [platforms, setPlatforms] = useState(['YouTube', 'X', 'LinkedIn', 'Instagram', 'TikTok'])
   const [step, setStep] = useState('config')
   const [msg, setMsg] = useState('')
   const [result, setResult] = useState(null)
@@ -78,7 +78,7 @@ export default function SproutImportModal({ isOpen, onClose, onDone, onShowSumma
               {/* Platforms */}
               <div className="field">
                 <label>Platforms to import</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   {PLATFORM_OPTIONS.map(p => (
                     <button key={p.id}
                       className={`metric-btn${platforms.includes(p.id) ? ' active' : ''}`}
@@ -87,8 +87,14 @@ export default function SproutImportModal({ isOpen, onClose, onDone, onShowSumma
                       {p.label}
                     </button>
                   ))}
+                  <button
+                    className="metric-btn"
+                    style={{ marginLeft: 4, color: 'var(--green)', borderColor: 'rgba(57,255,140,0.4)', background: 'rgba(57,255,140,0.06)' }}
+                    onClick={() => setPlatforms(platforms.length === PLATFORM_OPTIONS.length ? [] : PLATFORM_OPTIONS.map(p => p.id))}>
+                    {platforms.length === PLATFORM_OPTIONS.length ? 'Deselect All' : 'Select All'}
+                  </button>
                 </div>
-                <div className="field-hint">Select all platforms you want to pull in</div>
+                <div className="field-hint">All platforms selected by default</div>
               </div>
 
               {/* Date range */}
@@ -96,6 +102,9 @@ export default function SproutImportModal({ isOpen, onClose, onDone, onShowSumma
                 <label>How far back</label>
                 <select style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 10px', fontFamily: 'DM Mono', fontSize: 12, color: 'var(--text)', outline: 'none', appearance: 'none', cursor: 'pointer' }}
                   value={days} onChange={e => setDays(Number(e.target.value))}>
+                  <option value={1}>Last 24 hours</option>
+                  <option value={7}>Last 7 days</option>
+                  <option value={14}>Last 2 weeks</option>
                   <option value={30}>Last 30 days</option>
                   <option value={90}>Last 90 days</option>
                   <option value={180}>Last 6 months</option>
