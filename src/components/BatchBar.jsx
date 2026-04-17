@@ -30,6 +30,7 @@ function exportCSV(posts) {
 export default function BatchBar({ selectedIds, posts, onDelete, onRetag, onClear }) {
   const [retagShow, setRetagShow] = useState('')
   const [retagType, setRetagType] = useState('')
+  const [retagEpisode, setRetagEpisode] = useState('')
   const [confirming, setConfirming] = useState(false)
 
   if (selectedIds.size === 0) return null
@@ -37,14 +38,16 @@ export default function BatchBar({ selectedIds, posts, onDelete, onRetag, onClea
   const selectedPosts = posts.filter(p => selectedIds.has(p.id))
 
   async function handleRetag() {
-    if (!retagShow && !retagType) return
+    if (!retagShow && !retagType && !retagEpisode) return
     const updates = {}
     if (retagShow) updates.show = retagShow
     if (retagType) updates.mediaType = retagType
+    if (retagEpisode) updates.episodeNumber = retagEpisode
     await onRetag([...selectedIds], updates)
     onClear()
     setRetagShow('')
     setRetagType('')
+    setRetagEpisode('')
   }
 
   async function handleDelete() {
@@ -73,6 +76,7 @@ export default function BatchBar({ selectedIds, posts, onDelete, onRetag, onClea
         <select className="batch-select" value={retagShow} onChange={e => setRetagShow(e.target.value)}>
           <option value="">Move to show…</option>
           {SHOWS.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+          <option value="Newsroom">Newsroom</option>
           <option value="Unassigned">Unassigned</option>
         </select>
         <select className="batch-select" value={retagType} onChange={e => setRetagType(e.target.value)}>

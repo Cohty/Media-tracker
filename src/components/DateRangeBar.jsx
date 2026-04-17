@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 
 const PRESETS = [
+  { id: 'today',  label: 'Today' },
   { id: 'week',   label: 'This Week' },
   { id: '14d',    label: 'Last 14 Days' },
   { id: '30d',    label: 'Last 30 Days' },
@@ -36,6 +37,10 @@ export function useDateRange() {
 
   const range = useMemo(() => {
     const now = new Date(); now.setHours(23,59,59,999)
+    if (preset === 'today') {
+      const s = new Date(); s.setHours(0,0,0,0)
+      return { start: s, end: now, label: 'Today' }
+    }
     if (preset === 'all') return { start: new Date(0), end: now, label: 'All Time' }
     if (preset === 'week') {
       const s = startOfWeek()
