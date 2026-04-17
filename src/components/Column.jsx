@@ -6,7 +6,7 @@ function normalizeTitle(t) {
   return t.toLowerCase().trim().replace(/\s+/g, ' ')
 }
 
-export default function Column({ show, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect }) {
+export default function Column({ show, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onHide }) {
   const items = useMemo(() => {
     const epGroups = {}
     const titleGroups = {}
@@ -58,7 +58,7 @@ export default function Column({ show, posts, onDelete, onMove, highlightedPostI
         <div className="col-controls">
           <button className="col-ctrl">_</button>
           <button className="col-ctrl">□</button>
-          <button className="col-ctrl">×</button>
+          <button className="col-ctrl" onClick={onHide} title="Hide column">×</button>
         </div>
       </div>
       <div className="col-body">
