@@ -35,12 +35,33 @@ function parseTag(tagText) {
   return null
 }
 
-function resolveMediaType(platform, isEditorial) {
+function resolveMediaType(platform, isEditorial, isNewsroom, isClipAccount, text) {
   if (platform === 'TikTok') return 'Clip'
   if (isEditorial) return 'Article'
-  if (platform === 'YouTube' || platform === 'TikTok') return 'Full Episode'
+  if (isNewsroom) return 'Article'
   if (platform === 'LinkedIn' || platform === 'Instagram') return 'Article'
-  return 'Full Episode'
+  if (platform === 'X') {
+    // @TheBlockPods tweets are clips (guest quotes from episodes)
+    if (isClipAccount) return 'Clip'
+    // Short headline with no hashtags/emojis = news article
+    if (isHeadline(text)) return 'Article'
+    return 'Clip' // X posts with hashtags/quotes are clips
+  }
+  if (platform === 'YouTube') return 'Full Episode' // caller overrides to Clip for Shorts
+  return 'Article'
+}
+
+function isHeadline(text) {
+  if (!text) return true
+  const t = text.trim()
+  // Headlines: short, no hashtags, no quotes, no emojis pattern
+  const hasHashtags = (t.match(/#\w/g) || []).length > 2
+  const hasQuotes = /["\u201c\u201d]/.test(t)
+  const hasEmoji = /[\u{1F300}-\u{1FFFF}]/u.test(t)
+  const wordCount = t.split(/\s+/).length
+  // If it's a short plain sentence (likely a headline) → Article
+  if (wordCount < 15 && !hasHashtags && !hasQuotes && !hasEmoji) return true
+  return false
 }
 
 function normalizeUrl(url) {
@@ -221,7 +242,12 @@ export async function onRequestPost({ request, env }) {
 
     const isEditorial = showName === 'Editorials'
     const isNewsroom = showName === 'Newsroom'
-    const mediaType = isNewsroom ? 'Article' : resolveMediaType(platform, isEditorial)
+    // Detect clip accounts (@TheBlockPods posts clips, @TheBlockCo posts news)
+    const isClipAccount = (sp.perma_link || sp.permalink || '').toLowerCase().includes('theblockpods')
+    const postText = sp.text || ''
+    const isYouTubeShort = platform === 'YouTube' && (permalink.toLowerCase().includes('/shorts/'))
+    let mediaType = resolveMediaType(platform, isEditorial, isNewsroom, isClipAccount, postText)
+    if (isYouTubeShort) mediaType = 'Clip'
     const text = (sp.text || '').replace(/https?:\/\/\S+/g, '').trim()
     const title = text.length > 120 ? text.slice(0, 120) + '…' : text || permalink
     const createdAt = sp.created_time ? new Date(sp.created_time) : new Date()
