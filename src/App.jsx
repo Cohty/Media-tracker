@@ -16,6 +16,7 @@ import ReviewPanel from './components/ReviewPanel'
 import BatchBar from './components/BatchBar'
 import ImportSummaryModal from './components/ImportSummaryModal'
 import InboxView from './components/InboxView'
+import HelpView from './components/HelpView'
 
 export default function App() {
   const { user } = useUser()
@@ -133,6 +134,7 @@ export default function App() {
         onImportDone={logId => setSummaryLogId(logId)} />}
       {activeView === 'podcast'   && <PodcastView />}
       {activeView === 'inbox'     && <InboxView posts={posts} onUpdatePost={handleUpdatePost} onDeletePost={handleDeletePost} />}
+      {activeView === 'help'      && <HelpView />}
 
       {toast && <div className={`toast toast--${toast.type}`}>{toast.type==='pending'?'⏳ ':'✓ '}{toast.msg}</div>}
 
