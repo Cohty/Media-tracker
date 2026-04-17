@@ -127,7 +127,8 @@ export default function App() {
 
       {activeView === 'board' && (
         <Board posts={rangeFilteredPosts} onDelete={handleDeletePost} onMove={setMovingPost}
-          highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect} />
+          highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect}
+          onUpdatePost={handleUpdatePost} />
       )}
       {activeView === 'calendar'  && <CalendarView posts={posts} />}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={handleUpdatePost}

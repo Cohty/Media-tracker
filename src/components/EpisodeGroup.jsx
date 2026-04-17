@@ -11,7 +11,7 @@ const TYPE_COLORS = {
 }
 const CLIP_COLOR = { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.25)' }
 
-function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect }) {
+function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect, onUpdatePost }) {
   const [confirming, setConfirming] = useState(false)
   const pm = PLATFORMS[post.platform] || PLATFORMS.Other
   const isClip = post.mediaType === 'Clip'
@@ -58,7 +58,7 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
   )
 }
 
-export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect }) {
+export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onUpdatePost }) {
   const containsHighlighted = posts.some(p => p.id === highlightedPostId)
   const [expanded, setExpanded] = useState(false)
 

@@ -13,7 +13,7 @@ function saveHidden(set) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...set])) } catch {}
 }
 
-export default function Board({ posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect }) {
+export default function Board({ posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onUpdatePost }) {
   const [hidden, setHidden] = useState(loadHidden)
 
   function toggle(name) {
@@ -66,7 +66,7 @@ export default function Board({ posts, onDelete, onMove, highlightedPostId, sele
             onDelete={onDelete} onMove={onMove}
             highlightedPostId={highlightedPostId}
             selectedIds={selectedIds} onToggleSelect={onToggleSelect}
-            onHide={() => toggle(show.name)} />
+            onHide={() => toggle(show.name)} onUpdatePost={onUpdatePost} />
         ))}
         {unassignedPosts.length > 0 && !hidden.has('Unassigned') && (
           <Column show={UNASSIGNED} posts={unassignedPosts}

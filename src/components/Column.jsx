@@ -6,7 +6,7 @@ function normalizeTitle(t) {
   return t.toLowerCase().trim().replace(/\s+/g, ' ')
 }
 
-export default function Column({ show, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onHide }) {
+export default function Column({ show, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onHide, onUpdatePost }) {
   const items = useMemo(() => {
     const epGroups = {}
     const titleGroups = {}
@@ -72,12 +72,12 @@ export default function Column({ show, posts, onDelete, onMove, highlightedPostI
             return <EpisodeGroup key={item.key} groupKey={item.key} label={item.label}
               isEpisode={item.type === 'epGroup'} posts={item.posts}
               onDelete={onDelete} onMove={onMove} highlightedPostId={highlightedPostId}
-              selectedIds={selectedIds} onToggleSelect={onToggleSelect} />
+              selectedIds={selectedIds} onToggleSelect={onToggleSelect} onUpdatePost={onUpdatePost} />
           }
           return <Card key={item.key} post={item.post} onDelete={onDelete} onMove={onMove}
             highlighted={item.post.id === highlightedPostId}
             selected={selectedIds?.has(item.post.id)}
-            onToggleSelect={onToggleSelect} />
+            onToggleSelect={onToggleSelect} onUpdatePost={onUpdatePost} />
         })}
       </div>
     </div>
