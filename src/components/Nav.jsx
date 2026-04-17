@@ -3,6 +3,8 @@ const TABS = [
   { id: 'calendar',  label: 'CALENDAR',  icon: '◫' },
   { id: 'analytics', label: 'ANALYTICS', icon: '▲' },
   { id: 'podcast',   label: 'PODCAST',   icon: '🎙' },
+  { id: 'inbox',     label: 'INBOX',     icon: '📬' },
+  { id: 'help',      label: 'HELP',      icon: '?' },
 ]
 
 export default function Nav({ activeView, onChangeView }) {
