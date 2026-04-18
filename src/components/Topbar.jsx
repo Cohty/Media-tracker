@@ -7,7 +7,7 @@ async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' })
 }
 
-export default function Topbar({ postCount, showCount, onLogClick, user, pendingCount, onReviewClick, onPostsUpdated }) {
+export default function Topbar({ postCount, showCount, onLogClick, user, pendingCount, onReviewClick, onPostsUpdated, onChangeView, activeView }) {
   const { status: sproutStatus, syncPostStats } = useSprout()
   const [syncStatus, setSyncStatus] = useState(null) // null | 'syncing' | 'done' | 'error'
   const [syncMsg, setSyncMsg] = useState('')
@@ -51,6 +51,15 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
           <div className="topbar-meta">{postCount} posts logged — {showCount}/5 shows active</div>
         </div>
         <div className="topbar-right">
+          {/* Inbox button */}
+          <button
+            className={`sprout-import-btn${activeView === 'inbox' ? ' active' : ''}`}
+            onClick={() => onChangeView('inbox')}
+            title="Open Inbox"
+            style={activeView === 'inbox' ? { color: 'var(--purple)', borderColor: 'rgba(180,78,255,0.5)', background: 'rgba(180,78,255,0.1)' } : {}}>
+            📬 INBOX
+          </button>
+
           {/* Sprout buttons */}
           <button
             className="sprout-import-btn"

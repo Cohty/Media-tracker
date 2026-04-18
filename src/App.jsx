@@ -104,7 +104,8 @@ export default function App() {
     <>
       <Topbar postCount={posts.length} showCount={SHOWS.filter(s => posts.some(p => p.show === s.name)).length}
         onLogClick={() => setModalOpen(true)} user={user} pendingCount={pendingCount}
-        onReviewClick={() => setReviewOpen(true)} onPostsUpdated={refetch} />
+        onReviewClick={() => setReviewOpen(true)} onPostsUpdated={refetch}
+        onChangeView={setActiveView} activeView={activeView} />
 
       <StatsBar posts={rangeFilteredPosts} allPosts={posts} rangeLabel={preset !== 'all' ? range.label : null} />
 
