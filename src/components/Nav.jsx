@@ -4,6 +4,7 @@ const TABS = [
   { id: 'analytics', label: 'ANALYTICS', icon: '▲' },
   { id: 'podcast',   label: 'PODCAST',   icon: '🎙' },
   { id: 'inbox',     label: 'INBOX',     icon: '📬' },
+  { id: 'leaderboard', label: 'TOP',     icon: '🏆' },
   { id: 'help',      label: 'HELP',      icon: '?' },
 ]
 
