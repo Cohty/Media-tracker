@@ -1,15 +1,11 @@
 import { useState } from 'react'
-import { useSprout, importFromSprout } from '../hooks/useSprout'
+import { useSprout } from '../hooks/useSprout'
 import SproutImportModal from './SproutImportModal'
 import ImportSummaryModal from './ImportSummaryModal'
 
-async function logout() {
-  await fetch('/api/auth/logout', { method: 'POST' })
-}
-
 export default function Topbar({ postCount, showCount, onLogClick, user, pendingCount, onReviewClick, onPostsUpdated, onChangeView, activeView }) {
   const { status: sproutStatus, syncPostStats } = useSprout()
-  const [syncStatus, setSyncStatus] = useState(null) // null | 'syncing' | 'done' | 'error'
+  const [syncStatus, setSyncStatus] = useState(null)
   const [syncMsg, setSyncMsg] = useState('')
   const [importOpen, setImportOpen] = useState(false)
   const [summaryLogId, setSummaryLogId] = useState(null)
@@ -18,10 +14,8 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
 
   async function handleSync() {
     if (!sproutReady || syncStatus === 'syncing') return
-    setSyncStatus('syncing')
-    setSyncMsg('Syncing…')
+    setSyncStatus('syncing'); setSyncMsg('Syncing…')
     try {
-      // Fetch all posts for syncing
       const res = await fetch('/api/posts')
       const posts = await res.json()
       const results = await syncPostStats(posts, msg => setSyncMsg(msg))
@@ -32,13 +26,11 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
           body: JSON.stringify({ stats }),
         })
       }
-      setSyncStatus('done')
-      setSyncMsg(`${results.length} synced`)
+      setSyncStatus('done'); setSyncMsg(`${results.length} synced`)
       onPostsUpdated?.()
       setTimeout(() => setSyncStatus(null), 4000)
-    } catch (err) {
-      setSyncStatus('error')
-      setSyncMsg('Sync failed')
+    } catch {
+      setSyncStatus('error'); setSyncMsg('Failed')
       setTimeout(() => setSyncStatus(null), 5000)
     }
   }
@@ -46,63 +38,54 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
   return (
     <>
       <header className="topbar">
-        <div className="topbar-left">
-          <div className="logo">MEDIA<span className="logo-dot">.</span>TRACKER</div>
+        {/* Left: logo + meta */}
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flexShrink: 0 }}>
+          <div className="topbar-logo">MEDIA<span>.</span>TRACKER</div>
           <div className="topbar-meta">{postCount} posts logged — {showCount}/5 shows active</div>
         </div>
-        <div className="topbar-right">
-          {/* Inbox */}
+
+        {/* Right: all buttons in one row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'nowrap' }}>
+
           <button
             className={`topbar-action-btn${activeView === 'inbox' ? ' topbar-action-btn--active' : ''}`}
             onClick={() => onChangeView('inbox')}>
-            <span>📬</span><span>Inbox</span>
+            📬 Inbox
           </button>
 
-          {/* Import */}
           <button className="topbar-action-btn" onClick={() => setImportOpen(true)}>
-            <span>📥</span><span>Import</span>
+            📥 Import
           </button>
 
-          {/* Sync */}
           <button
             className={`topbar-action-btn topbar-action-btn--sync${syncStatus === 'syncing' ? ' syncing' : ''}${!sproutReady ? ' topbar-action-btn--disabled' : ''}`}
             onClick={handleSync}
             disabled={!sproutReady || syncStatus === 'syncing'}>
-            <span style={{ display: 'inline-block', transition: 'transform .3s', transform: syncStatus === 'syncing' ? 'rotate(180deg)' : 'none' }}>⟳</span>
-            <span>
-              {syncStatus === 'syncing' ? 'Syncing…'
-                : syncStatus === 'done' ? `✓ ${syncMsg}`
-                : syncStatus === 'error' ? '✕ Failed'
-                : 'Sync'}
-            </span>
+            <span style={{ display: 'inline-block', animation: syncStatus === 'syncing' ? 'topbar-spin 1s linear infinite' : 'none' }}>⟳</span>
+            {syncStatus === 'syncing' ? ' Syncing…' : syncStatus === 'done' ? ` ✓ ${syncMsg}` : syncStatus === 'error' ? ' ✕ Failed' : ' Sync'}
           </button>
 
           {user?.isAdmin && pendingCount > 0 && (
             <button className="review-queue-btn" onClick={onReviewClick}>
-              Review queue {pendingCount > 0 && <span className="pending-badge">{pendingCount}</span>}
+              Review queue <span className="pending-badge">{pendingCount}</span>
             </button>
           )}
+
           {user && (
             <div className="user-pill">
               <span className="user-role">{user.isAdmin ? 'admin' : 'contributor'}</span>
               <span className="user-email">{user.isAdmin ? 'admin' : user.email?.split('@')[0]}</span>
             </div>
           )}
+
           <button className="btn-log" onClick={onLogClick}>+ LOG POST</button>
         </div>
       </header>
 
-      <SproutImportModal
-        isOpen={importOpen}
-        onClose={() => setImportOpen(false)}
+      <SproutImportModal isOpen={importOpen} onClose={() => setImportOpen(false)}
         onDone={() => { setImportOpen(false); onPostsUpdated?.() }}
-        onShowSummary={logId => setSummaryLogId(logId)}
-      />
-      <ImportSummaryModal
-        logId={summaryLogId}
-        isOpen={!!summaryLogId}
-        onClose={() => setSummaryLogId(null)}
-      />
+        onShowSummary={logId => setSummaryLogId(logId)} />
+      <ImportSummaryModal logId={summaryLogId} isOpen={!!summaryLogId} onClose={() => setSummaryLogId(null)} />
     </>
   )
 }
