@@ -51,32 +51,30 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
           <div className="topbar-meta">{postCount} posts logged — {showCount}/5 shows active</div>
         </div>
         <div className="topbar-right">
-          {/* Inbox button */}
+          {/* Inbox */}
           <button
-            className={`sprout-import-btn${activeView === 'inbox' ? ' active' : ''}`}
-            onClick={() => onChangeView('inbox')}
-            title="Open Inbox"
-            style={activeView === 'inbox' ? { color: 'var(--purple)', borderColor: 'rgba(180,78,255,0.5)', background: 'rgba(180,78,255,0.1)' } : {}}>
-            📬 INBOX
+            className={`topbar-action-btn${activeView === 'inbox' ? ' topbar-action-btn--active' : ''}`}
+            onClick={() => onChangeView('inbox')}>
+            <span>📬</span><span>Inbox</span>
           </button>
 
-          {/* Sprout buttons */}
-          <button
-            className="sprout-import-btn"
-            onClick={() => setImportOpen(true)}
-            title="Import new posts from Sprout Social">
-            📥 IMPORT
+          {/* Import */}
+          <button className="topbar-action-btn" onClick={() => setImportOpen(true)}>
+            <span>📥</span><span>Import</span>
           </button>
+
+          {/* Sync */}
           <button
-            className={`sprout-sync-btn${syncStatus === 'syncing' ? ' syncing' : ''}${!sproutReady ? ' disabled' : ''}`}
+            className={`topbar-action-btn topbar-action-btn--sync${syncStatus === 'syncing' ? ' syncing' : ''}${!sproutReady ? ' topbar-action-btn--disabled' : ''}`}
             onClick={handleSync}
-            title="Sync stats from Sprout Social"
-            style={{ minWidth: 100 }}>
-            <span className="sprout-icon">⟳</span>
-            {syncStatus === 'syncing' ? setSyncMsg || 'SYNCING…'
-              : syncStatus === 'done' ? `✓ ${syncMsg}`
-              : syncStatus === 'error' ? '✕ FAILED'
-              : 'SYNC'}
+            disabled={!sproutReady || syncStatus === 'syncing'}>
+            <span style={{ display: 'inline-block', transition: 'transform .3s', transform: syncStatus === 'syncing' ? 'rotate(180deg)' : 'none' }}>⟳</span>
+            <span>
+              {syncStatus === 'syncing' ? 'Syncing…'
+                : syncStatus === 'done' ? `✓ ${syncMsg}`
+                : syncStatus === 'error' ? '✕ Failed'
+                : 'Sync'}
+            </span>
           </button>
 
           {user?.isAdmin && pendingCount > 0 && (
