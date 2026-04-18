@@ -47,38 +47,49 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
         {/* Right: all buttons in one row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'nowrap' }}>
 
+          {/* Log Post — first, styled like the others but pink */}
+          <button className="topbar-action-btn topbar-action-btn--log" onClick={onLogClick}>
+            ✚ Log Post
+          </button>
+
+          <div style={{ width: 1, height: 20, background: 'var(--border2)', margin: '0 2px' }} />
+
+          {/* Inbox */}
           <button
             className={`topbar-action-btn${activeView === 'inbox' ? ' topbar-action-btn--active' : ''}`}
             onClick={() => onChangeView('inbox')}>
             📬 Inbox
           </button>
 
+          {/* Import */}
           <button className="topbar-action-btn" onClick={() => setImportOpen(true)}>
             📥 Import
           </button>
 
+          {/* Sync */}
           <button
-            className={`topbar-action-btn topbar-action-btn--sync${syncStatus === 'syncing' ? ' syncing' : ''}${!sproutReady ? ' topbar-action-btn--disabled' : ''}`}
+            className={`topbar-action-btn topbar-action-btn--sync${!sproutReady ? ' topbar-action-btn--disabled' : ''}`}
             onClick={handleSync}
             disabled={!sproutReady || syncStatus === 'syncing'}>
             <span style={{ display: 'inline-block', animation: syncStatus === 'syncing' ? 'topbar-spin 1s linear infinite' : 'none' }}>⟳</span>
             {syncStatus === 'syncing' ? ' Syncing…' : syncStatus === 'done' ? ` ✓ ${syncMsg}` : syncStatus === 'error' ? ' ✕ Failed' : ' Sync'}
           </button>
 
+          <div style={{ width: 1, height: 20, background: 'var(--border2)', margin: '0 2px' }} />
+
+          {/* Review queue */}
           {user?.isAdmin && pendingCount > 0 && (
             <button className="review-queue-btn" onClick={onReviewClick}>
               Review queue <span className="pending-badge">{pendingCount}</span>
             </button>
           )}
 
+          {/* User pill — show role only, no duplicate */}
           {user && (
             <div className="user-pill">
               <span className="user-role">{user.isAdmin ? 'admin' : 'contributor'}</span>
-              <span className="user-email">{user.isAdmin ? 'admin' : user.email?.split('@')[0]}</span>
             </div>
           )}
-
-          <button className="btn-log" onClick={onLogClick}>+ LOG POST</button>
         </div>
       </header>
 

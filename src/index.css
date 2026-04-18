@@ -1060,3 +1060,14 @@ body {
 }
 
 @keyframes topbar-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+
+/* Log Post button in topbar */
+.topbar-action-btn--log {
+  color: var(--pink) !important;
+  border-color: rgba(255,45,120,0.4) !important;
+  background: rgba(255,45,120,0.08) !important;
+}
+.topbar-action-btn--log:hover {
+  background: rgba(255,45,120,0.15) !important;
+  box-shadow: var(--win-out), 0 0 8px rgba(255,45,120,0.25) !important;
+}
