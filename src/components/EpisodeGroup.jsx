@@ -53,13 +53,20 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
       const match = (data?.data || []).find(sp => normalizeUrl(sp.perma_link || '') === normUrl)
       if (match) {
         const m = match.metrics || {}
-        await onUpdatePost(post.id, { stats: {
-          views: String(m['lifetime.video_views'] || m['lifetime.impressions'] || ''),
-          engagement: String(m['lifetime.engagements'] || ''),
-          impressions: String(m['lifetime.impressions'] || ''),
-          lastSynced: Date.now(),
-        }})
-        setSyncResult('ok')
+        const stats = {}
+        const views = m['lifetime.video_views'] || m['lifetime.impressions'] || 0
+        const engagement = m['lifetime.engagements'] || 0
+        const impressions = m['lifetime.impressions'] || 0
+        if (views > 0)       stats.views = String(views)
+        if (engagement > 0)  stats.engagement = String(engagement)
+        if (impressions > 0) stats.impressions = String(impressions)
+        stats.lastSynced = Date.now()
+        if (Object.keys(stats).length > 1) {
+          await onUpdatePost(post.id, { stats })
+          setSyncResult('ok')
+        } else {
+          setSyncResult('miss') // matched URL but no stats yet
+        }
       } else { setSyncResult('miss') }
     } catch { setSyncResult('err') }
     setSyncing(false)

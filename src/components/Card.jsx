@@ -77,15 +77,21 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
       })
 
       if (match) {
-        const metrics = match.metrics || {}
-        const stats = {
-          views:       String(metrics['lifetime.video_views'] || metrics['lifetime.impressions'] || ''),
-          engagement:  String(metrics['lifetime.engagements'] || ''),
-          impressions: String(metrics['lifetime.impressions'] || ''),
-          lastSynced:  Date.now(),
+        const m = match.metrics || {}
+        const stats = {}
+        const views = m['lifetime.video_views'] || m['lifetime.impressions'] || 0
+        const engagement = m['lifetime.engagements'] || 0
+        const impressions = m['lifetime.impressions'] || 0
+        if (views > 0)       stats.views = String(views)
+        if (engagement > 0)  stats.engagement = String(engagement)
+        if (impressions > 0) stats.impressions = String(impressions)
+        stats.lastSynced = Date.now()
+        if (Object.keys(stats).length > 1) {
+          await onUpdatePost(post.id, { stats })
+          setSyncResult('ok')
+        } else {
+          setSyncResult('miss')
         }
-        await onUpdatePost(post.id, { stats })
-        setSyncResult('ok')
       } else {
         setSyncResult('miss')
       }

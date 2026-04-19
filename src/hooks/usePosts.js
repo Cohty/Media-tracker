@@ -54,7 +54,17 @@ export function usePosts() {
     })
     const result = await res.json()
     if (result.status === 'updated') {
-      setPosts(prev => prev.map(p => p.id === id ? { ...p, ...updates, stats: { ...p.stats, ...(updates.stats || {}) } } : p))
+      setPosts(prev => prev.map(p => {
+        if (p.id !== id) return p
+        const newStats = { ...p.stats }
+        if (updates.stats) {
+          // Only overwrite stat fields that have actual values
+          Object.entries(updates.stats).forEach(([k, v]) => {
+            if (v !== '' && v !== '0' && v !== null && v !== undefined) newStats[k] = v
+          })
+        }
+        return { ...p, ...updates, stats: newStats }
+      }))
     }
     return result.status
   }
