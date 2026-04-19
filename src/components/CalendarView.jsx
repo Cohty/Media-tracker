@@ -112,6 +112,7 @@ export default function CalendarView({ posts }) {
   const [rangeStart, setRangeStart] = useState(null)
   const [rangeEnd, setRangeEnd] = useState(null)
   const [sortBy, setSortBy] = useState('date')
+  const [filterType, setFilterType] = useState('all')
 
   const postsByDate = useMemo(() => {
     const map = {}
@@ -153,7 +154,9 @@ export default function CalendarView({ posts }) {
     const end = rangeEnd || rangeStart
     const result = posts.filter(p => {
       const k = dateKey(p.ts)
-      return k >= rangeStart && k <= end
+      if (k < rangeStart || k > end) return false
+      if (filterType !== 'all' && (p.mediaType || '') !== filterType) return false
+      return true
     })
     switch (sortBy) {
       case 'views':       return [...result].sort((a, b) => (Number(b.stats?.views) || 0) - (Number(a.stats?.views) || 0))
@@ -162,7 +165,7 @@ export default function CalendarView({ posts }) {
       case 'type':        return [...result].sort((a, b) => (a.mediaType || '').localeCompare(b.mediaType || ''))
       default:            return [...result].sort((a, b) => b.ts - a.ts)
     }
-  }, [posts, rangeStart, rangeEnd, sortBy])
+  }, [posts, rangeStart, rangeEnd, sortBy, filterType])
 
   const typeCounts = useMemo(() => {
     const counts = {}
@@ -282,13 +285,25 @@ export default function CalendarView({ posts }) {
                     </div>
                   )}
 
-                  {/* Sort bar */}
+                  {/* Sort + Type filter bar */}
                   <div style={{ display:'flex', gap:5, alignItems:'center', padding:'8px 0 4px', borderTop:'1px solid var(--border)', marginTop:4, flexWrap:'wrap' }}>
-                    <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)', marginRight:4 }}>SORT</span>
+                    <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)', marginRight:2 }}>SORT</span>
                     {SORT_OPTIONS.map(s => (
                       <button key={s.id} className={`metric-btn${sortBy === s.id ? ' active' : ''}`}
                         style={sortBy === s.id ? { color:'var(--cyan)', borderColor:'rgba(0,229,255,0.4)' } : {}}
                         onClick={() => setSortBy(s.id)}>{s.label}</button>
+                    ))}
+                    <div style={{ width:1, height:16, background:'var(--border2)', margin:'0 4px' }} />
+                    <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)', marginRight:2 }}>TYPE</span>
+                    <button className={`metric-btn${filterType === 'all' ? ' active' : ''}`}
+                      style={filterType === 'all' ? { color:'var(--text)', borderColor:'rgba(255,255,255,0.2)' } : {}}
+                      onClick={() => setFilterType('all')}>All</button>
+                    {MEDIA_TYPES.filter(t => typeCounts[t] > 0).map(t => (
+                      <button key={t} className={`metric-btn${filterType === t ? ' active' : ''}`}
+                        style={filterType === t ? { color: TYPE_COLORS[t] || 'var(--cyan)', borderColor: (TYPE_COLORS[t] || '#00e5ff') + '55' } : {}}
+                        onClick={() => setFilterType(filterType === t ? 'all' : t)}>
+                        {t} <span style={{ opacity:0.6 }}>({typeCounts[t]})</span>
+                      </button>
                     ))}
                   </div>
 
