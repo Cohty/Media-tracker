@@ -194,7 +194,7 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
               <PostRow post={post} onDelete={onDelete} onMove={onMove}
                 highlighted={post.id === highlightedPostId}
                 selected={selectedIds?.has(post.id)}
-                onToggleSelect={onToggleSelect} />
+                onToggleSelect={onToggleSelect} onUpdatePost={onUpdatePost} />
             </div>
           ))}
         </div>

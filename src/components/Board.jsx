@@ -73,7 +73,7 @@ export default function Board({ posts, onDelete, onMove, highlightedPostId, sele
             onDelete={onDelete} onMove={onMove}
             highlightedPostId={highlightedPostId}
             selectedIds={selectedIds} onToggleSelect={onToggleSelect}
-            onHide={() => toggle('Unassigned')} />
+            onHide={() => toggle('Unassigned')} onUpdatePost={onUpdatePost} />
         )}
       </div>
     </div>
