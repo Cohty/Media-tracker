@@ -12,7 +12,7 @@ const PLATFORM_OPTIONS = [
 ]
 
 export default function SproutImportModal({ isOpen, onClose, onDone, onShowSummary }) {
-  const [days, setDays] = useState(365)
+  const [days, setDays] = useState(1)
   const [platforms, setPlatforms] = useState(['YouTube', 'X', 'LinkedIn', 'Instagram', 'TikTok'])
   const [step, setStep] = useState('config')
   const [msg, setMsg] = useState('')
