@@ -11,11 +11,11 @@ const SECTIONS = [
       },
       {
         q: 'How do I log a new post?',
-        a: `Click the pink "+ LOG POST" button in the top right. Paste the URL — if it's a YouTube link, the title auto-fetches. Then select the show, media type (Clip, Full Episode, Broadcast, Article, Thread, Reply, Partner Post), and optionally the episode number or label. Hit Enter or click Submit.`,
+        a: `Click the pink "✚ Log Post" button in the top right header. Paste the URL — if it's a YouTube link, the title auto-fetches. Then select the show, media type, and optionally the episode number or label. Hit Enter or click Log Post.\n\nYou can also batch-log multiple posts at once — paste one URL, then click "+ Add another link" to queue up additional URLs. Set the Show, Type, and Episode once and they apply to all links. The button shows "LOG 4 POSTS" when you have multiple ready to submit.`,
       },
       {
         q: 'What are the tabs?',
-        a: `• BOARD — Kanban columns organized by show\n• CALENDAR — Posts by publish date with metrics inline\n• ANALYTICS — Performance charts, Sprout sync, and stats table\n• PODCAST — Transistor.fm download data for your three main shows\n• INBOX — Triage view for sorting unassigned or imported posts\n• HELP — You're here`,
+        a: `• 🏆 TOP — Leaderboard of your best performing content\n• ▦ BOARD — Kanban columns organized by show\n• ◫ CALENDAR — Posts by publish date with metrics inline\n• ▲ ANALYTICS — Performance charts, Sprout sync, and stats table\n• 🎙 PODCAST — Transistor.fm download data for your three main shows\n• ? HELP — You're here\n\nInbox, Import, and Sync are in the top header bar so they're accessible from any tab.`,
       },
       {
         q: 'Who can access this?',
@@ -33,7 +33,7 @@ const SECTIONS = [
       },
       {
         q: 'How do I hide or show columns?',
-        a: `Use the COLUMNS toggle bar just above the board. Each pill represents a column — click it to hide or show that column. The × on each column header also hides it. Your preferences are saved automatically and remembered when you refresh the page. Hidden columns still collect data normally — it's display only.`,
+        a: `Use the COLUMNS toggle bar just above the board. Each pill represents a column showing its name and post count — click to hide or show. The × on each column header also hides it. Your preferences are saved automatically and remembered when you refresh the page. Hidden columns still collect data normally — it's display only.`,
       },
       {
         q: 'What do the colored pills on each card mean?',
@@ -41,15 +41,19 @@ const SECTIONS = [
       },
       {
         q: 'What are the grouped "EP 73" sections?',
-        a: `When multiple posts share the same episode number, they collapse into a group. Click the group to expand it. The collapsed view shows platform pills and type labels at a glance. The checkbox next to the post count selects all posts in that group at once for batch actions.`,
+        a: `When multiple posts share the same episode number, they collapse into a group. Click the group to expand and see all posts inside. The collapsed view shows platform pills and type labels at a glance. The checkbox next to the post count selects all posts in that group for batch actions.`,
       },
       {
         q: 'How do I filter the board by date?',
-        a: `Use the date range bar below the nav tabs. Choose This Week (default), Last 14 Days, Last 30 Days, All Time, or a custom date range. The board and the six stats cards at the top all update to reflect posts from that period only.`,
+        a: `Use the date range bar below the nav tabs. Choose Today, This Week (default), Last 14 Days, Last 30 Days, All Time, or a custom date range. The board and the six stats cards at the top all update to reflect posts from that period only.`,
+      },
+      {
+        q: 'How do I search the board?',
+        a: `There's a search box in the date range bar on the right side. Type any keyword and the board filters to matching posts instantly — searches across title, show name, platform, media type, episode number, and URL. Click × to clear.`,
       },
       {
         q: 'How do I edit a post?',
-        a: `Click Edit on any card (hover to reveal it, or expand an episode group). A modal opens where you can change the show, media type, and episode number/label. Hit Enter or Save Changes. Changes save immediately. You can type anything in the Episode field — numbers like 73, or text labels like "Polymarket" or "Q1".`,
+        a: `Click Edit on any card (hover to reveal it, or expand an episode group). A modal opens where you can change the show, media type, and episode number/label. Hit Enter or Save Changes. Changes save immediately. You can type anything in the Episode field — numbers like 73, or text labels like "Polymarket".`,
       },
     ],
   },
@@ -63,11 +67,11 @@ const SECTIONS = [
       },
       {
         q: 'How does clip numbering work?',
-        a: `If you log multiple clips for the same show and episode, they're numbered automatically: Clip, Clip2, Clip3, etc. The system counts existing clips for that show+episode and assigns the next number. This also applies to Broadcasts (Broadcast, Broadcast2, etc.).`,
+        a: `If you log multiple clips for the same show and episode, they're numbered automatically: Clip, Clip2, Clip3, etc. The system counts existing clips for that show+episode and assigns the next number. Same applies to Broadcasts.`,
       },
       {
         q: 'How does the importer decide media type?',
-        a: `The import logic uses several signals:\n• TikTok → always Clip\n• YouTube /shorts/ URL → Clip\n• YouTube /watch URL → Full Episode\n• @TheBlockPods X posts → Clip (guest quote clips from episodes)\n• @TheBlockCo X short headline (no hashtags) → Article in Newsroom\n• @TheBlockCo X with hashtags/emojis → Clip\n• LinkedIn/Instagram cross-posted pairs → Article in Editorials\n• LinkedIn alone → skipped (not imported)\n• Sprout episode tags (TCB 73, L1 01, etc.) always override the above`,
+        a: `The import logic uses several signals:\n• TikTok → always Clip\n• YouTube /shorts/ URL → Clip\n• YouTube /watch URL → Full Episode\n• @TheBlockPods X posts → Clip (guest quote clips from episodes)\n• @TheBlockCo short plain headline → Article in Newsroom\n• @TheBlockCo with hashtags/emojis → Clip\n• LinkedIn/Instagram cross-posted pairs → Article in Editorials\n• Sprout episode tags (TCB 73, L1 01, BBP 05, TWP 01) always override the above`,
       },
     ],
   },
@@ -77,19 +81,19 @@ const SECTIONS = [
     faqs: [
       {
         q: 'Where do the numbers come from?',
-        a: `All metrics come directly from Sprout Social, which pulls them from each platform's native API (X, YouTube, LinkedIn, TikTok, Instagram). These are identical to what you'd see in Sprout's own dashboard. They are "lifetime" metrics — total since the post was published, not for a specific date window.`,
+        a: `All metrics come directly from Sprout Social, which pulls them from each platform's native API (X, YouTube, LinkedIn, TikTok, Instagram). These are "lifetime" metrics — total since the post was published. They match what you'd see in Sprout's own dashboard.\n\nNote: YouTube stats have a 2-3 day reporting delay, and X's API doesn't expose all the metrics you see in native X analytics (link clicks, profile visits, etc.).`,
       },
       {
-        q: 'What does Sync Sprout do?',
-        a: `Sync Sprout ONLY updates stats (views, engagement, impressions) on posts already logged in your tracker. It does NOT create new posts or cards. It fetches the last 365 days of data from Sprout, matches URLs to your existing logged posts, and writes the metric numbers to the database. Your show assignments, media types, episode labels, and all other manual edits are never touched.`,
+        q: 'What does Sync do vs Import?',
+        a: `• SYNC (⟳ Sync button in header) — Updates stats (views, engagement, impressions) on posts already logged in your tracker. Never creates new cards. Never overwrites your show, type, or episode data.\n\n• IMPORT (📥 Import button in header) — Fetches posts from Sprout and creates new cards for ones not yet in your tracker. Uses Sprout tags to auto-assign shows and episode numbers. Unrecognized posts land in Newsroom or Unassigned.\n\nYou can also sync a single post using the ⟳ button on each card.`,
       },
       {
-        q: 'How do I bring in NEW posts from Sprout?',
-        a: `Use "Import from Sprout" in the Analytics tab (the green button). This is different from Sync. Import fetches posts from Sprout and creates new cards for ones not already in your tracker. It uses your Sprout tags to auto-assign shows: TCB 73 → The Crypto Beat EP 73, L1 01 → Layer One EP 1, BBP 05 → Big Brain EP 5. Unrecognized posts land in Newsroom or Unassigned for sorting in the Inbox tab.`,
+        q: 'What is the per-card sync button?',
+        a: `Every card has a small ⟳ button in the action row (alongside Open, Edit, Remove). Click it and it searches Sprout specifically for that one post's URL and pulls back views, engagement, and impressions immediately — without running a full sync on all 800+ posts.\n\n✓ green = synced successfully\n— yellow = URL not found in Sprout (may not be tracked there, or URL format mismatch)\n✕ red = connection error`,
       },
       {
         q: 'What do the six stats cards at the top show?',
-        a: `All six update based on your selected date range:\n• Total Posts — posts in the date range\n• Shows Active — shows with content in that range\n• Top Platform — platform with the most posts\n• Total Views — sum of all video views\n• Total Engagement — sum of likes, comments, shares\n• Total Impressions — sum of all impressions\n\nHover over Views, Engagement, or Impressions to see the exact full number.`,
+        a: `All six update based on your selected date range:\n• Total Posts — posts in the date range\n• Shows Active — shows with content in that range\n• Top Platform — platform with the most posts\n• Total Views — sum of all video views\n• Total Engagement — sum of likes, comments, shares\n• Total Impressions — sum of all impressions\n\nHover over Views, Engagement, or Impressions to see the exact full unabbreviated number.`,
       },
       {
         q: 'Can I export data to a spreadsheet?',
@@ -98,20 +102,44 @@ const SECTIONS = [
     ],
   },
   {
-    title: '🎙️ Podcast Tab',
+    title: '🏆 Leaderboard (TOP tab)',
+    color: '#ffd700',
+    faqs: [
+      {
+        q: 'What is the TOP tab?',
+        a: `The TOP tab is a leaderboard of your best performing content. The top 3 posts get gold/silver/bronze hero cards with large metric display. Everything else appears in a ranked table below.`,
+      },
+      {
+        q: 'How do I filter the leaderboard?',
+        a: `Four filter controls at the top:\n• RANGE — Today, This Week, Month, Year, All Time\n• RANKED BY — 👁 Views, 💬 Engagement, 📢 Impressions\n• SHOW — filter to a specific show (includes Newsroom and Editorials)\n• TYPE — filter to Clips only, Articles only, etc.\n\nThe totals bar below the filters shows combined views, engagement, and impressions for your current filtered view. Click "Show 25 more" to load additional results.`,
+      },
+    ],
+  },
+  {
+    title: '◫ Calendar',
     color: '#39ff8c',
     faqs: [
       {
+        q: 'How do I use the calendar?',
+        a: `Click any day to see all posts published that day. Click a second day to select a date range — everything between those two days will appear in the Filter Results panel on the right. Click "✕ Clear selection" or the CLEAR button to reset.`,
+      },
+      {
+        q: 'What can I do in the Filter Results panel?',
+        a: `The panel shows:\n• Post count by media type (Clips, Full Episodes, Articles, etc.) — hover over any type count to see a popup breakdown of exactly which posts make up that number\n• Total Views, Engagement, Impressions for the selected range — hover to see the full unabbreviated number\n• Sort controls: Date · 👁 Views · 💬 Engage · 📢 Impressions · Type\n• Type filter pills: filter the list to show only Clips, only Articles, etc.\n• Full list of posts with metrics inline`,
+      },
+    ],
+  },
+  {
+    title: '🎙️ Podcast Tab',
+    color: '#00e5ff',
+    faqs: [
+      {
         q: 'What shows appear in the Podcast tab?',
-        a: `The Crypto Beat, Layer One, and The Big Brain Podcast only. Click "All Shows" to see combined data across all three, or click a specific show to drill in. The Scoop and The Block Research Podcast are excluded.`,
+        a: `The Crypto Beat, Layer One, and The Big Brain Podcast only. Click "All Shows" to see combined data, or click a specific show to drill in. The Scoop and The Block Research Podcast are excluded.`,
       },
       {
         q: 'What data comes from Transistor?',
-        a: `Total downloads per episode and daily download trends, using the IAB 2.0 standard (industry standard for podcast measurement). View 7, 14, or 30-day windows. Toggle between bar and line chart. Sort episodes by downloads or publish date. The trend chart has hover tooltips showing the exact download count per day.`,
-      },
-      {
-        q: 'Why are Spotify Streams and Apple Listens not shown?',
-        a: `Transistor's API only exposes total downloads — not per-platform breakdowns. Spotify and Apple listener counts are only available inside those platforms' own dashboards. Downloads measure audio file deliveries, which is a separate metric from platform-side streams.`,
+        a: `Total downloads per episode and daily download trends, using the IAB 2.0 standard. View 7, 14, or 30-day windows. Toggle between bar and line chart. Sort episodes by downloads or publish date. Hover over chart bars for exact counts.\n\nNote: Transistor only provides total downloads — not per-platform breakdowns. Spotify and Apple listener counts are only available in those platforms' own dashboards.`,
       },
     ],
   },
@@ -121,25 +149,25 @@ const SECTIONS = [
     faqs: [
       {
         q: 'What is the Inbox for?',
-        a: `The Inbox is a triage view for posts that haven't been properly categorized. Mainly content imported from Sprout that landed in Newsroom or Unassigned because it didn't match a known episode tag. Use it to bulk-sort posts without opening individual edit modals.`,
+        a: `The Inbox is a triage view for posts that haven't been properly categorized — mainly content imported from Sprout that landed in Newsroom or Unassigned because it didn't match a known episode tag. Use it to bulk-sort posts without opening individual edit modals.\n\nAccess it via the 📬 Inbox button in the top header bar (available from any tab).`,
       },
       {
         q: 'How do I use the Inbox?',
-        a: `Filter by show (e.g. Newsroom or Unassigned), then use the inline dropdowns on each row to change the show, media type, and episode/label. When you change anything, the row highlights purple. Hit Enter in the label field or click Save to commit. A green "✓ saved" confirmation appears briefly. Use the search bar to find specific content by keyword.`,
+        a: `Filter by show (e.g. Newsroom or Unassigned), then use the inline dropdowns on each row to change the show, media type, and episode/label. When you change anything, the row highlights purple. Hit Enter in the label field or click Save to commit. A green "✓ saved" confirmation appears briefly.`,
       },
     ],
   },
   {
     title: '✅ Batch Actions',
-    color: '#00e5ff',
+    color: '#b44eff',
     faqs: [
       {
         q: 'How do I select multiple posts?',
-        a: `On the Board, hover over any card to reveal a checkbox in the top-right corner. Click to select. For episode groups, click the checkbox next to the post count in the group header to select all posts in that group at once. You can select posts across multiple columns and groups simultaneously.`,
+        a: `On the Board, hover over any card to reveal a checkbox in the top-right corner. Click to select. For episode groups, click the checkbox next to the post count in the group header to select all posts in that group at once. You can select across multiple columns simultaneously.`,
       },
       {
         q: 'What can I do with batch-selected posts?',
-        a: `Once posts are selected, a purple bar appears at the top of the board:\n• Move to show — reassign all selected to a different column/show\n• Change type — change media type for all selected\n• Apply — executes the above changes immediately\n• ⬇ Export CSV — download a spreadsheet with all metrics for selected posts\n• 🗑 Delete — delete all selected (with confirmation step)`,
+        a: `Once posts are selected, a purple bar appears at the top of the board:\n• Move to show — reassign all selected to a different show\n• Change type — change media type for all selected\n• EP / label — set the episode number or label for all selected\n• Apply — executes the above changes\n• ⬇ Export CSV — download a spreadsheet with all metrics\n• 🗑 Delete — delete all selected (with confirmation)`,
       },
     ],
   },
@@ -149,15 +177,19 @@ const SECTIONS = [
     faqs: [
       {
         q: 'How does the importer match posts to shows?',
-        a: `The importer reads Sprout tags on each post. Tags follow naming conventions:\n• TCB 73 → The Crypto Beat, Episode 73\n• L1 01 → Layer One, Episode 1\n• BBP 05 → The Big Brain Podcast, Episode 5\n• WP 02 → The White Papers, Episode 2\n• Editorials tag → Editorials board\n\nIf no matching tag is found, the post goes to Newsroom (X posts) or Unassigned (other platforms).`,
+        a: `The importer reads Sprout tags. These formats all work:\n• TCB 73, TCB73 → The Crypto Beat, EP 73\n• BBP 05, BBP05, BBP5 → The Big Brain Podcast, EP 5\n• L1 01, L101 → Layer One, EP 1\n• TWP 02, WP 02, TWP2 → The White Papers, EP 2\n• Editorial tag → Editorials column\n\nIf no matching tag is found, X posts go to Newsroom and everything else goes to Unassigned.`,
       },
       {
         q: 'What is the difference between Sync and Import?',
-        a: `• SYNC SPROUT — Updates stats (views, engagement, impressions) on posts already in your tracker. Never creates new cards. Never overwrites show/type/episode data.\n\n• IMPORT FROM SPROUT — Creates new cards for posts not yet in your tracker. Uses Sprout tags to assign shows and episode numbers. Skips any URL already logged (no duplicates).`,
+        a: `• SYNC — Updates stats (views, engagement, impressions) on posts already in your tracker. Never creates new cards. Never overwrites show/type/episode data. Also available as a per-card button on each post.\n\n• IMPORT — Creates new cards for posts not yet in your tracker. Uses Sprout tags to assign shows and episode numbers. Skips any URL already logged (no duplicates).`,
       },
       {
-        q: 'What happens to posts that don\'t match any tag?',
-        a: `• X/Twitter posts without a tag → Newsroom column, Article type\n• @TheBlockPods X posts → Clip type for the matched show\n• Instagram + LinkedIn cross-posted pairs with an Editorials tag → Editorials column\n• Everything else → Unassigned column\n\nUse the Inbox tab to sort through Newsroom and Unassigned posts and assign them properly.`,
+        q: 'What are the Import date range options?',
+        a: `Last 24 hours, Last 7 days, Last 2 weeks, Last 30 days, Last 90 days, Last 6 months, Last 1 year, Last 2 years.\n\nAll platforms (YouTube, X, LinkedIn, Instagram, TikTok) are selected by default. Use "Deselect All" or individual toggles to narrow it down.`,
+      },
+      {
+        q: "What happens to posts that don't match any tag?",
+        a: `• X/Twitter posts without a tag → Newsroom, Article type\n• @TheBlockPods X posts → Clip type for the matched show\n• Instagram + LinkedIn cross-posted pairs with an Editorials tag → Editorials column\n• Everything else → Unassigned\n\nUse the Inbox tab to sort through Newsroom and Unassigned posts.`,
       },
     ],
   },
