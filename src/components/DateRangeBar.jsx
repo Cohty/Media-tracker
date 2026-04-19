@@ -65,7 +65,7 @@ export function useDateRange() {
   return { preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd, range }
 }
 
-export default function DateRangeBar({ preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd, range, postCount }) {
+export default function DateRangeBar({ preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd, range, postCount, search, setSearch }) {
   return (
     <div className="date-range-bar">
       <div className="date-range-inner">
@@ -88,8 +88,28 @@ export default function DateRangeBar({ preset, setPreset, customStart, setCustom
               onChange={e => setCustomEnd(e.target.value)} />
           </div>
         )}
-        <div style={{ marginLeft:'auto', fontFamily:'DM Mono', fontSize:9, color:'var(--text3)' }}>
-          {range.label} · <span style={{ color:'var(--cyan)' }}>{postCount} posts</span>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginLeft:'auto' }}>
+          {/* Search */}
+          <div style={{ position:'relative', display:'flex', alignItems:'center' }}>
+            <span style={{ position:'absolute', left:8, fontFamily:'DM Mono', fontSize:11, color:'var(--text3)', pointerEvents:'none' }}>⌕</span>
+            <input
+              type="text"
+              placeholder="Search posts…"
+              value={search || ''}
+              onChange={e => setSearch(e.target.value)}
+              style={{ background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:'var(--radius)',
+                padding:'4px 10px 4px 24px', fontFamily:'DM Mono', fontSize:10, color:'var(--text)',
+                outline:'none', boxShadow:'var(--win-in)', width:180 }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')}
+                style={{ position:'absolute', right:6, background:'none', border:'none', color:'var(--text3)',
+                  cursor:'pointer', fontSize:11, lineHeight:1, padding:0 }}>×</button>
+            )}
+          </div>
+          <div style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--text3)', whiteSpace:'nowrap' }}>
+            {range.label} · <span style={{ color:'var(--cyan)' }}>{postCount} posts</span>
+          </div>
         </div>
       </div>
     </div>

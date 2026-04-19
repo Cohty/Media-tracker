@@ -31,17 +31,29 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [summaryLogId, setSummaryLogId] = useState(null)
+  const [boardSearch, setBoardSearch] = useState('')
 
   const { preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd, range } = useDateRange()
 
-  // Filter posts by date range for board + statsbar
+  // Filter posts by date range + search for board + statsbar
   const rangeFilteredPosts = useMemo(() => {
-    if (preset === 'all') return posts
-    return posts.filter(p => {
+    let result = preset === 'all' ? posts : posts.filter(p => {
       const ts = p.ts || 0
       return ts >= range.start.getTime() && ts <= range.end.getTime()
     })
-  }, [posts, preset, range])
+    if (boardSearch.trim()) {
+      const q = boardSearch.toLowerCase()
+      result = result.filter(p =>
+        p.title?.toLowerCase().includes(q) ||
+        p.show?.toLowerCase().includes(q) ||
+        p.platform?.toLowerCase().includes(q) ||
+        p.mediaType?.toLowerCase().includes(q) ||
+        p.episodeNumber?.toLowerCase().includes(q) ||
+        p.url?.toLowerCase().includes(q)
+      )
+    }
+    return result
+  }, [posts, preset, range, boardSearch])
 
   function showToast(msg, type = 'info') {
     setToast({ msg, type })
@@ -118,6 +130,7 @@ export default function App() {
           customStart={customStart} setCustomStart={setCustomStart}
           customEnd={customEnd} setCustomEnd={setCustomEnd}
           range={range} postCount={rangeFilteredPosts.length}
+          search={boardSearch} setSearch={setBoardSearch}
         />
       )}
 
