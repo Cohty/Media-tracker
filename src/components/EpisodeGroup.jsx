@@ -85,6 +85,28 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
         {tc && <div className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>{typeLabel}</div>}
       </div>
       <div className="card-title" style={{ marginBottom: 6 }}>{post.title}</div>
+
+      {/* Stats badges */}
+      {(Number(post.stats?.views) > 0 || Number(post.stats?.engagement) > 0 || Number(post.stats?.impressions) > 0) && (
+        <div className="card-stats-row" style={{ marginBottom: 6 }}>
+          {Number(post.stats?.views) > 0 && (
+            <span className="card-stat-badge" style={{ color:'#00e5ff', borderColor:'#00e5ff40', background:'#00e5ff10' }}>
+              👁 {Number(post.stats.views) >= 1000 ? `${(Number(post.stats.views)/1000).toFixed(1)}k` : post.stats.views}
+            </span>
+          )}
+          {Number(post.stats?.engagement) > 0 && (
+            <span className="card-stat-badge" style={{ color:'#ff2d78', borderColor:'#ff2d7840', background:'#ff2d7810' }}>
+              💬 {Number(post.stats.engagement) >= 1000 ? `${(Number(post.stats.engagement)/1000).toFixed(1)}k` : post.stats.engagement}
+            </span>
+          )}
+          {Number(post.stats?.impressions) > 0 && (
+            <span className="card-stat-badge" style={{ color:'#b44eff', borderColor:'#b44eff40', background:'#b44eff10' }}>
+              📢 {Number(post.stats.impressions) >= 1000 ? `${(Number(post.stats.impressions)/1000).toFixed(1)}k` : post.stats.impressions}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="card-footer">
         <span className="card-date">{post.date}</span>
         <div className="card-actions" style={{ opacity: 1 }}>
@@ -92,9 +114,10 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
           <button className="act-btn act-edit" onClick={() => onMove(post)}>Edit</button>
           {onUpdatePost && (
             <button className="act-btn"
-              style={{ color: syncResult==='ok' ? 'var(--green)' : syncResult==='miss' ? 'var(--yellow)' : syncResult==='err' ? 'var(--pink)' : 'var(--text3)', opacity: syncing ? 0.6 : 1 }}
+              title={syncResult==='ok' ? 'Synced!' : syncResult==='miss' ? 'No match in Sprout' : 'Sync stats from Sprout'}
+              style={{ color: syncResult==='ok' ? 'var(--green)' : syncResult==='miss' ? 'var(--yellow)' : syncResult==='err' ? 'var(--pink)' : 'var(--text3)', minWidth: 18 }}
               onClick={handleSingleSync} disabled={syncing}>
-              {syncing ? '⟳' : syncResult==='ok' ? '✓' : syncResult==='miss' ? '—' : '⟳ sync'}
+              {syncing ? '⟳' : syncResult==='ok' ? '✓' : syncResult==='miss' ? '—' : '⟳'}
             </button>
           )}
           <button className="act-btn act-del" onClick={() => setConfirming(true)}>Remove</button>
