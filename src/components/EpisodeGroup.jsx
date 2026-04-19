@@ -11,12 +11,60 @@ const TYPE_COLORS = {
 }
 const CLIP_COLOR = { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.25)' }
 
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url.toLowerCase().trim())
+    u.hostname = u.hostname.replace('x.com', 'twitter.com')
+    u.search = ''
+    return u.toString().replace(/\/$/, '')
+  } catch { return url.toLowerCase().trim() }
+}
+
 function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect, onUpdatePost }) {
   const [confirming, setConfirming] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState(null)
   const pm = PLATFORMS[post.platform] || PLATFORMS.Other
   const isClip = post.mediaType === 'Clip'
   const typeLabel = isClip ? (post.clipIndex || 'Clip') : post.mediaType
   const tc = isClip ? CLIP_COLOR : (post.mediaType ? TYPE_COLORS[post.mediaType] : null)
+
+  async function handleSingleSync() {
+    setSyncing(true); setSyncResult(null)
+    try {
+      const normUrl = normalizeUrl(post.url || '')
+      const now = new Date()
+      const start = new Date(now); start.setDate(now.getDate() - 730)
+      const fmt = d => d.toISOString().replace('Z','').split('.')[0]
+      const res = await fetch('/api/sprout?path=' + encodeURIComponent('analytics/posts'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filters: [
+            'customer_profile_id.eq(7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559)',
+            `created_time.in(${fmt(start)}..${fmt(now)})`,
+          ],
+          fields: ['perma_link'],
+          metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views'],
+          page: 1, limit: 200,
+        }),
+      })
+      const data = await res.json()
+      const match = (data?.data || []).find(sp => normalizeUrl(sp.perma_link || '') === normUrl)
+      if (match) {
+        const m = match.metrics || {}
+        await onUpdatePost(post.id, { stats: {
+          views: String(m['lifetime.video_views'] || m['lifetime.impressions'] || ''),
+          engagement: String(m['lifetime.engagements'] || ''),
+          impressions: String(m['lifetime.impressions'] || ''),
+          lastSynced: Date.now(),
+        }})
+        setSyncResult('ok')
+      } else { setSyncResult('miss') }
+    } catch { setSyncResult('err') }
+    setSyncing(false)
+    setTimeout(() => setSyncResult(null), 3000)
+  }
 
   return (
     <div className={`ep-post-row${highlighted ? ' ep-post-row--highlighted' : ''}${selected ? ' selected' : ''}`}
@@ -42,6 +90,13 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
         <div className="card-actions" style={{ opacity: 1 }}>
           <a className="act-btn" href={post.url} target="_blank" rel="noreferrer">Open ↗</a>
           <button className="act-btn act-edit" onClick={() => onMove(post)}>Edit</button>
+          {onUpdatePost && (
+            <button className="act-btn"
+              style={{ color: syncResult==='ok' ? 'var(--green)' : syncResult==='miss' ? 'var(--yellow)' : syncResult==='err' ? 'var(--pink)' : 'var(--text3)', opacity: syncing ? 0.6 : 1 }}
+              onClick={handleSingleSync} disabled={syncing}>
+              {syncing ? '⟳' : syncResult==='ok' ? '✓' : syncResult==='miss' ? '—' : '⟳ sync'}
+            </button>
+          )}
           <button className="act-btn act-del" onClick={() => setConfirming(true)}>Remove</button>
         </div>
       </div>
