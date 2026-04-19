@@ -34,9 +34,10 @@ export const COLLECTION_TO_SHOW = {
 // Map Sprout tag PREFIXES → { show, episodePrefix }
 // e.g. "TCB 73" → { show: 'The Crypto Beat', episode: '73' }
 export const TAG_PREFIXES = [
-  { prefix: 'tcb',  show: 'The Crypto Beat'       },
+  { prefix: 'tcb',  show: 'The Crypto Beat'        },
   { prefix: 'bbp',  show: 'The Big Brain Podcast'  },
   { prefix: 'l1',   show: 'Layer One'              },
+  { prefix: 'twp',  show: 'The White Papers'       },
   { prefix: 'wp',   show: 'The White Papers'       },
   { prefix: 'sa',   show: 'Standalones'            },
   { prefix: 'ed',   show: 'Editorials'             },
