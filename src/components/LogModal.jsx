@@ -1,27 +1,25 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { SHOWS, PLATFORMS, MEDIA_TYPES, detectPlatform, fetchYTTitle } from '../constants'
 
-const EMPTY = { url: '', title: '', show: SHOWS[0].name, mediaType: 'Full Episode', episodeNumber: '' }
+const newEntry = () => ({ url: '', title: '', fetching: false, titleFetched: false, platform: '', duplicate: null })
 
 export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, posts, isContributor }) {
-  const [form, setForm] = useState(EMPTY)
-  const [platform, setPlatform] = useState('')
-  const [fetching, setFetching] = useState(false)
-  const [titleFetched, setTitleFetched] = useState(false)
-  const urlInputRef = useRef(null)
-  const timerRef = useRef(null)
+  const [entries, setEntries] = useState([newEntry()])
+  const [shared, setShared] = useState({ show: SHOWS[0].name, mediaType: 'Full Episode', episodeNumber: '' })
+  const urlRefs = useRef([])
+  const timerRefs = useRef([])
 
   useEffect(() => {
     if (isOpen) {
-      setForm(EMPTY); setPlatform(''); setFetching(false); setTitleFetched(false)
-      setTimeout(() => urlInputRef.current?.focus(), 50)
+      setEntries([newEntry()])
+      setShared({ show: SHOWS[0].name, mediaType: 'Full Episode', episodeNumber: '' })
+      setTimeout(() => urlRefs.current[0]?.focus(), 50)
     }
   }, [isOpen])
 
   useEffect(() => {
     function onKey(e) {
       if (e.key === 'Escape') onClose()
-      // Enter submits the form unless focused on a textarea or select
       if (e.key === 'Enter' && !e.shiftKey) {
         const tag = document.activeElement?.tagName
         if (tag !== 'TEXTAREA' && tag !== 'SELECT') {
@@ -34,54 +32,61 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const duplicatePost = useMemo(() => {
-    const url = form.url.trim()
-    if (url.length < 10) return null
-    return posts.find(p => p.url.trim().toLowerCase() === url.toLowerCase()) || null
-  }, [form.url, posts])
+  function handleUrlChange(idx, url) {
+    setEntries(prev => prev.map((e, i) => i !== idx ? e : { ...e, url, platform: detectPlatform(url), titleFetched: false, duplicate: null }))
+    clearTimeout(timerRefs.current[idx])
 
-  const clipIndex = useMemo(() => {
-    if (form.mediaType !== 'Clip') return ''
-    const count = posts.filter(p =>
-      p.show === form.show && p.mediaType === 'Clip' && p.episodeNumber === form.episodeNumber
-    ).length
-    return count === 0 ? 'Clip' : `Clip${count + 1}`
-  }, [form.mediaType, form.show, form.episodeNumber, posts])
+    // Duplicate check
+    const dup = posts.find(p => p.url.trim().toLowerCase() === url.trim().toLowerCase())
+    if (dup) {
+      setEntries(prev => prev.map((e, i) => i !== idx ? e : { ...e, duplicate: dup }))
+      return
+    }
 
-  function handleUrlChange(url) {
-    setForm(f => ({ ...f, url }))
-    clearTimeout(timerRef.current)
+    // YouTube auto-title
     const detected = detectPlatform(url)
-    setPlatform(detected); setTitleFetched(false)
     if (detected === 'YouTube' && url.length > 20) {
-      setFetching(true)
-      timerRef.current = setTimeout(async () => {
+      setEntries(prev => prev.map((e, i) => i !== idx ? e : { ...e, fetching: true }))
+      timerRefs.current[idx] = setTimeout(async () => {
         const title = await fetchYTTitle(url)
-        setFetching(false)
-        if (title) { setForm(f => ({ ...f, title })); setTitleFetched(true) }
+        setEntries(prev => prev.map((e, i) => i !== idx ? e : { ...e, fetching: false, title: title || e.title, titleFetched: !!title }))
       }, 600)
     }
   }
 
-  function handleJump() { onNavigateToPost(duplicatePost.id); onClose() }
+  function addEntry() {
+    setEntries(prev => [...prev, newEntry()])
+    setTimeout(() => urlRefs.current[entries.length]?.focus(), 50)
+  }
+
+  function removeEntry(idx) {
+    setEntries(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const clipIndex = useMemo(() => {
+    if (shared.mediaType !== 'Clip') return ''
+    const count = posts.filter(p =>
+      p.show === shared.show && p.mediaType === 'Clip' && p.episodeNumber === shared.episodeNumber
+    ).length
+    return count === 0 ? 'Clip' : `Clip${count + 1}`
+  }, [shared.mediaType, shared.show, shared.episodeNumber, posts])
+
+  const validEntries = entries.filter(e => e.url.trim() && e.title.trim() && !e.duplicate && !e.fetching)
+  const canSubmit = validEntries.length > 0
 
   function handleSubmit() {
     if (!canSubmit) return
-    onSubmit({ ...form, platform, clipIndex })
+    validEntries.forEach(e => {
+      onSubmit({ url: e.url, title: e.title, platform: e.platform, show: shared.show, mediaType: shared.mediaType, episodeNumber: shared.episodeNumber, clipIndex })
+    })
     onClose()
   }
 
-  const canSubmit = form.url.trim() && form.title.trim() && !fetching && !duplicatePost
-  const pm = platform ? (PLATFORMS[platform] || PLATFORMS.Other) : null
-  const dupShow = duplicatePost ? SHOWS.find(s => s.name === duplicatePost.show) : null
-
   return (
     <div className={`overlay${isOpen ? ' open' : ''}`} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal">
+      <div className="modal" style={{ maxWidth: 560, width: '92vw' }}>
         <div className="modal-titlebar" style={isContributor ? { background: 'linear-gradient(90deg, #001840, #004080)' } : {}}>
-          <span className="modal-titlebar-text">
-            {isContributor ? '📤 Submit Post for Review' : '📝 Log New Post'}
-          </span>
+          <span className="modal-titlebar-text">{isContributor ? '📤 Submit Post for Review' : '📝 Log New Post'}</span>
           <div className="modal-titlebar-controls">
             <button className="modal-ctrl">_</button>
             <button className="modal-ctrl">□</button>
@@ -96,77 +101,117 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
           </div>
         )}
 
-        <div className="modal-body">
-          <div className="field">
-            <label>URL</label>
-            <input ref={urlInputRef} type="url" placeholder="Paste the link here..."
-              value={form.url} onChange={e => handleUrlChange(e.target.value)}
-              style={duplicatePost ? { borderColor: 'rgba(240,224,64,0.5)' } : {}} />
-            {duplicatePost ? (
-              <div className="dup-warning">
-                <div className="dup-warning-header"><span className="dup-icon">⚠</span><span>This URL is already logged</span></div>
-                <div className="dup-post-preview">
-                  {dupShow && <div className="dup-show-bar" style={{ background: dupShow.hex + '22', borderLeft: `3px solid ${dupShow.hex}` }}><span style={{ color: dupShow.hex, fontFamily: 'DM Mono', fontSize: 9 }}>{duplicatePost.show}</span></div>}
-                  <div className="dup-post-title">{duplicatePost.title}</div>
-                  <div className="dup-post-meta">{duplicatePost.platform} · {duplicatePost.date}{duplicatePost.episodeNumber ? ` · EP ${duplicatePost.episodeNumber}` : ''}</div>
-                </div>
-                <button className="dup-jump-btn" onClick={handleJump}>Jump to post on board →</button>
-              </div>
-            ) : (
-              <div className="field-hint">
-                {fetching && 'Fetching title from YouTube…'}
-                {!fetching && pm && <span className="platform-tag" style={{ background: pm.bg, color: pm.color, borderColor: pm.pb }}>{platform} detected{titleFetched ? ' · title filled' : ''}</span>}
-              </div>
-            )}
-          </div>
+        <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
 
-          {!duplicatePost && (
-            <>
-              <div className="field">
-                <label>Title</label>
-                <input type="text" placeholder="Episode or post title..."
-                  value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-              </div>
-              <div className="modal-row">
+          {/* URL entries */}
+          {entries.map((entry, idx) => {
+            const pm = entry.platform ? (PLATFORMS[entry.platform] || PLATFORMS.Other) : null
+            const dupShow = entry.duplicate ? SHOWS.find(s => s.name === entry.duplicate.show) : null
+            return (
+              <div key={idx} style={{
+                background: idx > 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                border: idx > 0 ? '1px solid var(--border)' : 'none',
+                borderRadius: idx > 0 ? 'var(--radius)' : 0,
+                padding: idx > 0 ? '10px 12px' : 0,
+                marginBottom: 12,
+                position: 'relative',
+              }}>
+                {idx > 0 && (
+                  <button onClick={() => removeEntry(idx)}
+                    style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none',
+                      color: 'var(--text3)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 2 }}>×</button>
+                )}
+                {idx > 0 && (
+                  <div style={{ fontFamily: 'DM Mono', fontSize: 8, color: 'var(--text3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                    Link {idx + 1}
+                  </div>
+                )}
                 <div className="field">
-                  <label>Show</label>
-                  <select value={form.show} onChange={e => setForm(f => ({ ...f, show: e.target.value }))}>
-                    {SHOWS.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                  </select>
+                  {idx === 0 && <label>URL</label>}
+                  <input
+                    ref={el => urlRefs.current[idx] = el}
+                    type="url" placeholder="Paste the link here..."
+                    value={entry.url} onChange={e => handleUrlChange(idx, e.target.value)}
+                    style={entry.duplicate ? { borderColor: 'rgba(240,224,64,0.5)' } : {}} />
+                  {entry.duplicate ? (
+                    <div className="dup-warning">
+                      <div className="dup-warning-header"><span className="dup-icon">⚠</span><span>Already logged</span></div>
+                      <div className="dup-post-preview">
+                        {dupShow && <div className="dup-show-bar" style={{ background: dupShow.hex + '22', borderLeft: `3px solid ${dupShow.hex}` }}><span style={{ color: dupShow.hex, fontFamily: 'DM Mono', fontSize: 9 }}>{entry.duplicate.show}</span></div>}
+                        <div className="dup-post-title">{entry.duplicate.title}</div>
+                      </div>
+                      <button className="dup-jump-btn" onClick={() => { onNavigateToPost(entry.duplicate.id); onClose() }}>Jump to post →</button>
+                    </div>
+                  ) : (
+                    <div className="field-hint">
+                      {entry.fetching && 'Fetching title from YouTube…'}
+                      {!entry.fetching && pm && <span className="platform-tag" style={{ background: pm.bg, color: pm.color }}>{entry.platform} detected{entry.titleFetched ? ' · title filled' : ''}</span>}
+                    </div>
+                  )}
                 </div>
-                <div className="field">
-                  <label>Media Type</label>
-                  <select value={form.mediaType} onChange={e => setForm(f => ({ ...f, mediaType: e.target.value }))}>
-                    {MEDIA_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="field">
-                <label>Episode # <span style={{ color: 'var(--text3)' }}>(optional)</span></label>
-                <input type="text" placeholder="e.g. 73 or E42..."
-                  value={form.episodeNumber} onChange={e => setForm(f => ({ ...f, episodeNumber: e.target.value }))} />
-                {form.mediaType === 'Clip' && (
-                  <div className="clip-index-preview">
-                    <span className="clip-index-arrow">→</span>
-                    <span>will be logged as</span>
-                    <span className="clip-index-badge">{clipIndex}</span>
+                {!entry.duplicate && (
+                  <div className="field">
+                    <input type="text" placeholder="Title..."
+                      value={entry.title} onChange={e => setEntries(prev => prev.map((en, i) => i !== idx ? en : { ...en, title: e.target.value }))} />
                   </div>
                 )}
               </div>
-            </>
-          )}
+            )
+          })}
+
+          {/* Add more button */}
+          <button onClick={addEntry}
+            style={{ width: '100%', padding: '7px 0', background: 'transparent', border: '1px dashed var(--border2)',
+              borderRadius: 'var(--radius)', fontFamily: 'DM Mono', fontSize: 9, color: 'var(--text3)',
+              cursor: 'pointer', marginBottom: 14, letterSpacing: '0.5px', transition: 'all .15s' }}
+            onMouseEnter={e => { e.target.style.borderColor = 'var(--cyan)'; e.target.style.color = 'var(--cyan)' }}
+            onMouseLeave={e => { e.target.style.borderColor = 'var(--border2)'; e.target.style.color = 'var(--text3)' }}>
+            + Add another link
+          </button>
+
+          {/* Shared settings */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+            <div style={{ fontFamily: 'DM Mono', fontSize: 8, color: 'var(--text3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+              Applied to all {entries.length > 1 ? `${entries.length} links` : 'above'}
+            </div>
+            <div className="modal-row">
+              <div className="field">
+                <label>Show</label>
+                <select value={shared.show} onChange={e => setShared(s => ({ ...s, show: e.target.value }))}>
+                  {SHOWS.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                  <option value="Newsroom">Newsroom</option>
+                  <option value="Editorials">Editorials</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>Media Type</label>
+                <select value={shared.mediaType} onChange={e => setShared(s => ({ ...s, mediaType: e.target.value }))}>
+                  {MEDIA_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="field">
+              <label>Episode # <span style={{ color: 'var(--text3)' }}>(optional)</span></label>
+              <input type="text" placeholder="e.g. 73 or Polymarket..."
+                value={shared.episodeNumber} onChange={e => setShared(s => ({ ...s, episodeNumber: e.target.value }))} />
+              {shared.mediaType === 'Clip' && (
+                <div className="clip-index-preview">
+                  <span className="clip-index-arrow">→</span>
+                  <span>will be logged as</span>
+                  <span className="clip-index-badge">{clipIndex}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="modal-actions">
           <button className="btn-ghost" onClick={onClose}>Cancel</button>
-          {duplicatePost
-            ? <button className="btn-primary" style={{ background: 'var(--yellow)', color: '#000' }} onClick={handleJump}>Jump to existing post</button>
-            : <button className="btn-primary" disabled={!canSubmit}
-                style={isContributor ? { background: 'var(--cyan)', boxShadow: 'var(--win-out), 0 0 12px rgba(0,229,255,0.3)' } : {}}
-                id="log-modal-submit" onClick={handleSubmit}>
-                {isContributor ? 'SUBMIT FOR REVIEW' : 'LOG POST'}
-              </button>
-          }
+          <button className="btn-primary" disabled={!canSubmit}
+            id="log-modal-submit" onClick={handleSubmit}
+            style={isContributor ? { background: 'var(--cyan)', boxShadow: 'var(--win-out), 0 0 12px rgba(0,229,255,0.3)' } : {}}>
+            {isContributor ? 'SUBMIT FOR REVIEW' : `LOG ${validEntries.length > 1 ? `${validEntries.length} POSTS` : 'POST'}`}
+          </button>
         </div>
       </div>
     </div>
