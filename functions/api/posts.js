@@ -22,6 +22,7 @@ export async function onRequestGet({ env }) {
       impressions: row.stats_impressions || '',
     },
     createdBy: row.created_by,
+    syncUrl: row.sync_url || '',
   }))
 
   return jsonResponse(posts)

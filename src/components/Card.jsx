@@ -49,7 +49,7 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
     setSyncResult(null)
     try {
       // Fetch from Sprout analytics for this specific URL
-      const normUrl = normalizeUrl(post.url || '')
+      const normUrl = normalizeUrl(post.syncUrl?.trim() || post.url || '')
       const now = new Date()
       const start = new Date(now); start.setDate(now.getDate() - 730)
       const fmt = d => d.toISOString().split('.')[0]

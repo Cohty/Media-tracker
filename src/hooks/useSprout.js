@@ -114,7 +114,9 @@ export function useSprout() {
     // Match our stored posts using normalized URLs
     const results = []
     for (const post of posts) {
-      const normUrl = normalizeUrl(post.url || '')
+      // Use syncUrl if set, otherwise fall back to logged url
+      const urlToMatch = post.syncUrl?.trim() || post.url || ''
+      const normUrl = normalizeUrl(urlToMatch)
       if (statsMap[normUrl]) results.push({ id: post.id, stats: statsMap[normUrl], post })
     }
 
