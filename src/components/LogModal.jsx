@@ -74,11 +74,11 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
   const validEntries = entries.filter(e => e.url.trim() && e.title.trim() && !e.duplicate && !e.fetching)
   const canSubmit = validEntries.length > 0
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!canSubmit) return
-    validEntries.forEach(e => {
-      onSubmit({ url: e.url, title: e.title, platform: e.platform, show: shared.show, mediaType: shared.mediaType, episodeNumber: shared.episodeNumber, clipIndex })
-    })
+    for (const e of validEntries) {
+      await onSubmit({ url: e.url, title: e.title, platform: e.platform, show: shared.show, mediaType: shared.mediaType, episodeNumber: shared.episodeNumber, clipIndex })
+    }
     onClose()
   }
 
