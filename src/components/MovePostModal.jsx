@@ -12,6 +12,7 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
   const [show, setShow] = useState('')
   const [mediaType, setMediaType] = useState('')
   const [episodeNumber, setEpisodeNumber] = useState('')
+  const [syncUrl, setSyncUrl] = useState('')
 
   // Reset form when post changes
   useEffect(() => {
@@ -19,6 +20,7 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
       setShow(post.show || SHOWS[0].name)
       setMediaType(post.mediaType || 'Full Episode')
       setEpisodeNumber(post.episodeNumber || '')
+      setSyncUrl(post.syncUrl || '')
     }
   }, [post?.id, isOpen])
 
@@ -61,6 +63,7 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
       mediaType,
       episodeNumber,
       clipIndex: mediaType === 'Clip' ? clipIndex : '',
+      syncUrl: syncUrl.trim(),
     }
     onSave(post.id, updates)
     onClose()
@@ -69,7 +72,8 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
   const hasChanges = post && (
     show !== (post.show || '') ||
     mediaType !== (post.mediaType || '') ||
-    episodeNumber !== (post.episodeNumber || '')
+    episodeNumber !== (post.episodeNumber || '') ||
+    syncUrl.trim() !== (post.syncUrl || '')
   )
 
   if (!post || !isOpen) return null
@@ -125,6 +129,31 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
                 <span className="clip-index-arrow">→</span>
                 <span>will be labeled</span>
                 <span className="clip-index-badge">{clipIndex || 'Clip'}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="field" style={{ marginTop: 4 }}>
+            <label>
+              Sprout Sync URL
+              <span style={{ color:'var(--text3)', fontWeight:400 }}> (optional — paste if Sprout has a different URL)</span>
+            </label>
+            <input
+              type="url"
+              placeholder="https://x.com/... or youtube.com/..."
+              value={syncUrl}
+              onChange={e => setSyncUrl(e.target.value)}
+              autoComplete="off"
+              style={{ color: syncUrl ? 'var(--cyan)' : undefined }}
+            />
+            {syncUrl.trim() && (
+              <div style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--cyan)', marginTop:4 }}>
+                ⟳ Sync will use this URL to match against Sprout
+              </div>
+            )}
+            {post.syncUrl && !syncUrl.trim() && (
+              <div style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)', marginTop:4 }}>
+                Currently using: {post.syncUrl}
               </div>
             )}
           </div>
