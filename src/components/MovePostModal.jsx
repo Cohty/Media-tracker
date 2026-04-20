@@ -13,6 +13,10 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
   const [mediaType, setMediaType] = useState('')
   const [episodeNumber, setEpisodeNumber] = useState('')
   const [syncUrl, setSyncUrl] = useState('')
+  const [manualViews, setManualViews] = useState('')
+  const [manualEngagement, setManualEngagement] = useState('')
+  const [manualImpressions, setManualImpressions] = useState('')
+  const [showManualStats, setShowManualStats] = useState(false)
 
   // Reset form when post changes
   useEffect(() => {
@@ -21,6 +25,10 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
       setMediaType(post.mediaType || 'Full Episode')
       setEpisodeNumber(post.episodeNumber || '')
       setSyncUrl(post.syncUrl || '')
+      setManualViews(post.stats?.views || '')
+      setManualEngagement(post.stats?.engagement || '')
+      setManualImpressions(post.stats?.impressions || '')
+      setShowManualStats(!!(post.stats?.views || post.stats?.engagement || post.stats?.impressions))
     }
   }, [post?.id, isOpen])
 
@@ -64,6 +72,11 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
       episodeNumber,
       clipIndex: mediaType === 'Clip' ? clipIndex : '',
       syncUrl: syncUrl.trim(),
+      stats: {
+        views: manualViews.trim(),
+        engagement: manualEngagement.trim(),
+        impressions: manualImpressions.trim(),
+      },
     }
     onSave(post.id, updates)
     onClose()
@@ -73,7 +86,10 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
     show !== (post.show || '') ||
     mediaType !== (post.mediaType || '') ||
     episodeNumber !== (post.episodeNumber || '') ||
-    syncUrl.trim() !== (post.syncUrl || '')
+    syncUrl.trim() !== (post.syncUrl || '') ||
+    manualViews !== (post.stats?.views || '') ||
+    manualEngagement !== (post.stats?.engagement || '') ||
+    manualImpressions !== (post.stats?.impressions || '')
   )
 
   if (!post || !isOpen) return null
@@ -157,6 +173,42 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
               </div>
             )}
           </div>
+
+          {/* Manual Stats Entry */}
+          <div style={{ marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+            <button
+              onClick={() => setShowManualStats(v => !v)}
+              style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--text3)', background:'none',
+                border:'none', cursor:'pointer', padding:0, marginBottom: showManualStats ? 10 : 0,
+                display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:11 }}>{showManualStats ? '▾' : '▸'}</span>
+              Enter stats manually
+              <span style={{ color:'var(--text3)', fontSize:8 }}>(from YouTube Studio, X Analytics, etc.)</span>
+            </button>
+            {showManualStats && (
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+                <div className="field">
+                  <label style={{ color:'#00e5ff' }}>👁 Views</label>
+                  <input type="number" placeholder="0"
+                    value={manualViews} onChange={e => setManualViews(e.target.value)}
+                    style={{ color:'#00e5ff' }} />
+                </div>
+                <div className="field">
+                  <label style={{ color:'#ff2d78' }}>💬 Engagement</label>
+                  <input type="number" placeholder="0"
+                    value={manualEngagement} onChange={e => setManualEngagement(e.target.value)}
+                    style={{ color:'#ff2d78' }} />
+                </div>
+                <div className="field">
+                  <label style={{ color:'#b44eff' }}>📢 Impressions</label>
+                  <input type="number" placeholder="0"
+                    value={manualImpressions} onChange={e => setManualImpressions(e.target.value)}
+                    style={{ color:'#b44eff' }} />
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
         <div className="modal-actions">
           <button className="btn-ghost" onClick={onClose}>Cancel</button>
