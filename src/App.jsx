@@ -33,11 +33,19 @@ export default function App() {
   const [summaryLogId, setSummaryLogId] = useState(null)
   const [boardSearch, setBoardSearch] = useState('')
 
-  // Read hidden columns from localStorage to filter stats
-  const hiddenCols = useMemo(() => {
+  // Hidden columns — lifted here so StatsBar and Board stay in sync
+  const [hiddenCols, setHiddenCols] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('mt_hidden_cols') || '[]')) }
     catch { return new Set() }
-  }, [])
+  })
+  function toggleHiddenCol(name) {
+    setHiddenCols(prev => {
+      const next = new Set(prev)
+      next.has(name) ? next.delete(name) : next.add(name)
+      try { localStorage.setItem('mt_hidden_cols', JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }
 
   const { preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd, range } = useDateRange()
 
@@ -151,7 +159,7 @@ export default function App() {
       {activeView === 'board' && (
         <Board posts={rangeFilteredPosts} onDelete={handleDeletePost} onMove={setMovingPost}
           highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect}
-          onUpdatePost={handleUpdatePost} />
+          onUpdatePost={handleUpdatePost} hiddenCols={hiddenCols} onToggleHiddenCol={toggleHiddenCol} />
       )}
       {activeView === 'calendar'  && <CalendarView posts={posts} />}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={handleUpdatePost}
