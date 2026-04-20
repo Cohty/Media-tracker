@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { SHOWS, MEDIA_TYPES, PLATFORMS } from '../constants'
 
-const ALL_SHOWS = [...SHOWS.map(s => s.name), 'Newsroom', 'Editorials', 'Unassigned']
+const ALL_SHOWS = [...SHOWS.map(s => s.name), 'Unassigned']
 
 const SHOW_COLORS = Object.fromEntries([...SHOWS, { name: 'Newsroom', hex: '#e0d0ff' }, { name: 'Editorials', hex: '#00a8ff' }].map(s => [s.name, s.hex]))
 

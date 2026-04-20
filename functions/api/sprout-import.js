@@ -8,6 +8,8 @@ const COLLECTION_TO_SHOW = {
   'the white papers': 'The White Papers', 'white papers': 'The White Papers',
   'standalones': 'Standalones', 'standalone': 'Standalones',
   'editorials': 'Editorials', 'editorial': 'Editorials',
+  'partners': 'Partners & Campaigns', 'campaigns': 'Partners & Campaigns',
+  'partner campaign': 'Partners & Campaigns', 'sponsored': 'Partners & Campaigns',
   'newsroom clips': 'Standalones', 'around the block': 'Standalones',
   'the starting block': 'Standalones', 'cryptoiq': 'Standalones',
 }
@@ -36,8 +38,9 @@ function parseTag(tagText) {
   return null
 }
 
-function resolveMediaType(platform, isEditorial, isNewsroom, isClipAccount, text) {
+function resolveMediaType(platform, isEditorial, isNewsroom, isClipAccount, text, isPartner) {
   if (platform === 'TikTok') return 'Clip'
+  if (isPartner) return 'Partner Post'
   if (isEditorial) return 'Article'
   if (isNewsroom) return 'Article'
   if (platform === 'LinkedIn' || platform === 'Instagram') return 'Article'
@@ -246,8 +249,9 @@ export async function onRequestPost({ request, env }) {
     // Detect clip accounts (@TheBlockPods posts clips, @TheBlockCo posts news)
     const isClipAccount = (sp.perma_link || sp.permalink || '').toLowerCase().includes('theblockpods')
     const postText = sp.text || ''
+    const isPartner = showName === 'Partners & Campaigns'
     const isYouTubeShort = platform === 'YouTube' && (permalink.toLowerCase().includes('/shorts/'))
-    let mediaType = resolveMediaType(platform, isEditorial, isNewsroom, isClipAccount, postText)
+    let mediaType = resolveMediaType(platform, isEditorial, isNewsroom, isClipAccount, postText, isPartner)
     if (isYouTubeShort) mediaType = 'Clip'
     const text = (sp.text || '').replace(/https?:\/\/\S+/g, '').trim()
     const title = text.length > 120 ? text.slice(0, 120) + '…' : text || permalink
