@@ -115,7 +115,7 @@ export function useSprout() {
     const results = []
     for (const post of posts) {
       const normUrl = normalizeUrl(post.url || '')
-      if (statsMap[normUrl]) results.push({ id: post.id, stats: statsMap[normUrl] })
+      if (statsMap[normUrl]) results.push({ id: post.id, stats: statsMap[normUrl], post })
     }
 
     onProgress?.(`Matched ${results.length} of ${posts.length} posts`)

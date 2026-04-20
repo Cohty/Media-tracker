@@ -18,6 +18,11 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
     try {
       const res = await fetch('/api/posts')
       const posts = await res.json()
+
+      // Build pre-sync snapshot of stats
+      const before = {}
+      posts.forEach(p => { before[p.id] = { views: Number(p.stats?.views) || 0, engagement: Number(p.stats?.engagement) || 0, impressions: Number(p.stats?.impressions) || 0 } })
+
       const results = await syncPostStats(posts, msg => setSyncMsg(msg))
       for (const { id, stats } of results) {
         await fetch(`/api/posts/${id}`, {
@@ -26,9 +31,28 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
           body: JSON.stringify({ stats }),
         })
       }
-      setSyncStatus('done'); setSyncMsg(`${results.length} synced`)
+
+      // Detect significant changes (post that gained 1k+ views or 50+ engagement)
+      const highlights = []
+      for (const { id, stats, post } of results) {
+        const prev = before[id] || {}
+        const viewGain = (Number(stats.views) || 0) - (prev.views || 0)
+        const engGain = (Number(stats.engagement) || 0) - (prev.engagement || 0)
+        if (viewGain >= 1000 || engGain >= 50) {
+          highlights.push({ title: post?.title || 'Post', viewGain, engGain })
+        }
+      }
+
+      setSyncStatus('done')
+      if (highlights.length > 0) {
+        const top = highlights.sort((a, b) => b.viewGain - a.viewGain)[0]
+        const fmt = n => n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n)
+        setSyncMsg(`${results.length} synced · 🔥 "${top.title.slice(0,30)}…" +${fmt(top.viewGain)} views`)
+      } else {
+        setSyncMsg(`${results.length} synced`)
+      }
       onPostsUpdated?.()
-      setTimeout(() => setSyncStatus(null), 4000)
+      setTimeout(() => setSyncStatus(null), highlights.length > 0 ? 8000 : 4000)
     } catch {
       setSyncStatus('error'); setSyncMsg('Failed')
       setTimeout(() => setSyncStatus(null), 5000)

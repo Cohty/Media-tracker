@@ -33,6 +33,12 @@ export default function App() {
   const [summaryLogId, setSummaryLogId] = useState(null)
   const [boardSearch, setBoardSearch] = useState('')
 
+  // Read hidden columns from localStorage to filter stats
+  const hiddenCols = useMemo(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('mt_hidden_cols') || '[]')) }
+    catch { return new Set() }
+  }, [])
+
   const { preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd, range } = useDateRange()
 
   // Filter posts by date range + search for board + statsbar
@@ -119,7 +125,9 @@ export default function App() {
         onReviewClick={() => setReviewOpen(true)} onPostsUpdated={refetch}
         onChangeView={setActiveView} activeView={activeView} />
 
-      <StatsBar posts={rangeFilteredPosts} allPosts={posts} rangeLabel={preset !== 'all' ? range.label : null} />
+      <StatsBar
+        posts={rangeFilteredPosts.filter(p => !hiddenCols.has(p.show) && !hiddenCols.has('Unassigned'))}
+        allPosts={posts} rangeLabel={preset !== 'all' ? range.label : null} />
 
       <Nav activeView={activeView} onChangeView={setActiveView} />
 
