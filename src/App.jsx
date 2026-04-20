@@ -49,25 +49,28 @@ export default function App() {
 
   const { preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd, range } = useDateRange()
 
-  // Filter posts by date range + search for board + statsbar
+  // Filter posts by date range for stats bar
   const rangeFilteredPosts = useMemo(() => {
-    let result = preset === 'all' ? posts : posts.filter(p => {
+    if (preset === 'all') return posts
+    return posts.filter(p => {
       const ts = p.ts || 0
       return ts >= range.start.getTime() && ts <= range.end.getTime()
     })
-    if (boardSearch.trim()) {
-      const q = boardSearch.toLowerCase()
-      result = result.filter(p =>
-        p.title?.toLowerCase().includes(q) ||
-        p.show?.toLowerCase().includes(q) ||
-        p.platform?.toLowerCase().includes(q) ||
-        p.mediaType?.toLowerCase().includes(q) ||
-        p.episodeNumber?.toLowerCase().includes(q) ||
-        p.url?.toLowerCase().includes(q)
-      )
-    }
-    return result
-  }, [posts, preset, range, boardSearch])
+  }, [posts, preset, range])
+
+  // Board posts — search ignores date range and searches ALL posts
+  const boardPosts = useMemo(() => {
+    if (!boardSearch.trim()) return rangeFilteredPosts
+    const q = boardSearch.toLowerCase()
+    return posts.filter(p =>
+      p.title?.toLowerCase().includes(q) ||
+      p.show?.toLowerCase().includes(q) ||
+      p.platform?.toLowerCase().includes(q) ||
+      p.mediaType?.toLowerCase().includes(q) ||
+      p.episodeNumber?.toLowerCase().includes(q) ||
+      p.url?.toLowerCase().includes(q)
+    )
+  }, [posts, rangeFilteredPosts, boardSearch])
 
   function showToast(msg, type = 'info') {
     setToast({ msg, type })
@@ -145,7 +148,7 @@ export default function App() {
           preset={preset} setPreset={setPreset}
           customStart={customStart} setCustomStart={setCustomStart}
           customEnd={customEnd} setCustomEnd={setCustomEnd}
-          range={range} postCount={rangeFilteredPosts.length}
+          range={range} postCount={boardSearch.trim() ? boardPosts.length : rangeFilteredPosts.length}
           search={boardSearch} setSearch={setBoardSearch}
         />
       )}
@@ -157,7 +160,7 @@ export default function App() {
       )}
 
       {activeView === 'board' && (
-        <Board posts={rangeFilteredPosts} onDelete={handleDeletePost} onMove={setMovingPost}
+        <Board posts={boardPosts} onDelete={handleDeletePost} onMove={setMovingPost}
           highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect}
           onUpdatePost={handleUpdatePost} hiddenCols={hiddenCols} onToggleHiddenCol={toggleHiddenCol} />
       )}
