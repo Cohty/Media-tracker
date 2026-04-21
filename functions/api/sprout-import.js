@@ -35,6 +35,10 @@ function parseTag(tagText) {
   for (const [kw, show] of Object.entries(COLLECTION_TO_SHOW)) {
     if (lower === kw || lower.includes(kw)) return { show, episode: null, type: 'collection' }
   }
+  // Check campaign keywords
+  for (const kw of CAMPAIGN_KEYWORDS) {
+    if (lower.includes(kw)) return { show: 'Partners & Campaigns', episode: null, type: 'collection' }
+  }
   return null
 }
 
