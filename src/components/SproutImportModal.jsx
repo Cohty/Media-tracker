@@ -18,6 +18,15 @@ export default function SproutImportModal({ isOpen, onClose, onDone, onShowSumma
   const [msg, setMsg] = useState('')
   const [result, setResult] = useState(null)
 
+  // Reset to config state every time modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setStep('config')
+      setMsg('')
+      setResult(null)
+    }
+  }, [isOpen])
+
   function togglePlatform(id) {
     setPlatforms(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
   }
@@ -162,6 +171,11 @@ export default function SproutImportModal({ isOpen, onClose, onDone, onShowSumma
         </div>
 
         <div className="modal-actions">
+          {step === 'done' && (
+            <button className="btn-ghost" onClick={() => { setStep('config'); setResult(null); setMsg('') }}>
+              ← Import Again
+            </button>
+          )}
           <button className="btn-ghost" onClick={onClose}>{step === 'done' ? 'Close' : 'Cancel'}</button>
           {step === 'done' && result?.logId && (
             <button className="btn-ghost" style={{ color: 'var(--cyan)' }}
