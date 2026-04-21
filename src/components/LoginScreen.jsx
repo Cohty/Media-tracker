@@ -18,6 +18,7 @@ export default function LoginScreen({ onLogin }) {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Login failed'); setLoading(false); return }
+      localStorage.setItem('mt_token', data.token)
       onLogin()
     } catch {
       setError('Connection error'); setLoading(false)

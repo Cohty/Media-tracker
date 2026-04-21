@@ -3,39 +3,18 @@ import { jsonResponse } from '../_auth.js'
 export async function onRequestPost({ request, env }) {
   const { email, password } = await request.json()
 
-  if (!email || !password) {
-    return jsonResponse({ error: 'Email and password required' }, 400)
-  }
+  if (!email || !password) return jsonResponse({ error: 'Email and password required' }, 400)
+  if (password !== env.SITE_PASSWORD) return jsonResponse({ error: 'Invalid password' }, 401)
 
-  // Check password matches SITE_PASSWORD
-  if (password !== env.SITE_PASSWORD) {
-    return jsonResponse({ error: 'Invalid password' }, 401)
-  }
-
-  // Check email is in ALLOWED_EMAILS
   const allowed = (env.ALLOWED_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
-  if (!allowed.includes(email.toLowerCase()) && email.toLowerCase() !== env.ADMIN_EMAIL?.toLowerCase()) {
-    return jsonResponse({ error: 'Email not authorized' }, 403)
-  }
+  const adminEmails = (env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
+  const isAllowed = allowed.includes(email.toLowerCase()) || adminEmails.includes(email.toLowerCase())
 
-  // Set session cookie with email (base64 encoded, not secure but sufficient for internal tool)
-  const session = btoa(JSON.stringify({ email: email.toLowerCase(), ts: Date.now() }))
+  if (!isAllowed) return jsonResponse({ error: 'Email not authorized' }, 403)
 
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Set-Cookie': `mt_session=${session}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`, // 7 days
-    }
-  })
-}
+  const isAdmin = adminEmails.includes(email.toLowerCase())
 
-export async function onRequestDelete({ }) {
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Set-Cookie': 'mt_session=; Path=/; HttpOnly; Max-Age=0',
-    }
-  })
+  // Return session token to store in localStorage (not cookie)
+  const token = btoa(JSON.stringify({ email: email.toLowerCase(), isAdmin, ts: Date.now() }))
+  return jsonResponse({ ok: true, token, isAdmin, email: email.toLowerCase() })
 }

@@ -6,7 +6,7 @@ export function usePosts() {
 
   const fetchPosts = useCallback(async () => {
     try {
-      const res = await fetch('/api/posts')
+      const res = await fetch('/api/posts', { headers: getAuthHeaders() })
       if (res.ok) setPosts(await res.json())
     } catch (e) {
       console.error('Failed to fetch posts', e)
@@ -27,7 +27,7 @@ export function usePosts() {
     }
     const res = await fetch('/api/posts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify(post),
     })
     const result = await res.json()
@@ -38,7 +38,7 @@ export function usePosts() {
   }
 
   async function deletePost(id) {
-    const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/posts/${id}`, { method: 'DELETE', headers: getAuthHeaders() })
     const result = await res.json()
     if (result.status === 'deleted') {
       setPosts(prev => prev.filter(p => p.id !== id))
@@ -49,7 +49,7 @@ export function usePosts() {
   async function updatePost(id, updates) {
     const res = await fetch(`/api/posts/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify(updates),
     })
     const result = await res.json()

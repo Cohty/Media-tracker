@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getAuthHeaders } from './useUser'
 
 async function sproutGet(path) {
   const res = await fetch(`/api/sprout?path=${encodeURIComponent(path)}`)
