@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getAuthHeaders } from '../hooks/useUser'
 import { PLATFORMS } from '../constants'
 
 const TYPE_COLORS = {
@@ -39,7 +40,7 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
       const fmt = d => d.toISOString().replace('Z','').split('.')[0]
       const res = await fetch('/api/sprout?path=' + encodeURIComponent('analytics/posts'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({
           filters: [
             'customer_profile_id.eq(7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559)',

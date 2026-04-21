@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
+import { getAuthHeaders } from './hooks/useUser'
 import { SHOWS } from './constants'
 import { usePosts } from './hooks/usePosts'
 import { useUser } from './hooks/useUser'
@@ -13,6 +14,7 @@ import PodcastView from './components/PodcastView'
 import LogModal from './components/LogModal'
 import MovePostModal from './components/MovePostModal'
 import ReviewPanel from './components/ReviewPanel'
+import LoginScreen from './components/LoginScreen'
 import BatchBar from './components/BatchBar'
 import ImportSummaryModal from './components/ImportSummaryModal'
 import InboxView from './components/InboxView'
@@ -88,13 +90,13 @@ export default function App() {
   }
 
   async function handleBatchDelete(ids) {
-    await fetch('/api/posts', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) })
+    await fetch('/api/posts', { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify({ ids }) })
     await refetch()
     showToast(`${ids.length} posts deleted`, 'success')
   }
 
   async function handleBatchRetag(ids, updates) {
-    await fetch('/api/posts', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, updates }) })
+    await fetch('/api/posts', { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify({ ids, updates }) })
     await refetch()
     showToast(`${ids.length} posts updated`, 'success')
   }

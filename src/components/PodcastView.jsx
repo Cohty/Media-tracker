@@ -18,7 +18,7 @@ const SHOW_COLORS = {
 
 async function transistorFetch(path, params = {}) {
   const qs = new URLSearchParams({ path, ...params })
-  const res = await fetch(`/api/transistor?${qs}`)
+  const res = await fetch(`/api/transistor?${qs}`, { headers: getAuthHeaders() })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }

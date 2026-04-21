@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { getAuthHeaders } from '../hooks/useUser'
 import { SHOWS, PLATFORMS, MEDIA_TYPES } from '../constants'
 
 const ACTION_LABELS = { add: 'New Post', edit: 'Edit', delete: 'Delete' }
@@ -22,7 +23,7 @@ export default function ReviewPanel({ onClose, onApproved }) {
   const fetchPending = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/pending')
+      const res = await fetch('/api/pending', { headers: getAuthHeaders() })
       if (res.ok) setItems(await res.json())
     } finally { setLoading(false) }
   }, [])
@@ -33,7 +34,7 @@ export default function ReviewPanel({ onClose, onApproved }) {
     for (const id of ids) {
       await fetch(`/api/pending/${id}/review`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ decision, note, overridePayload: payload }),
       })
     }

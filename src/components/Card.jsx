@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getAuthHeaders } from '../hooks/useUser'
 import { PLATFORMS } from '../constants'
 
 const TYPE_COLORS = {
@@ -56,7 +57,7 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
 
       const res = await fetch('/api/sprout?path=' + encodeURIComponent('analytics/posts'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({
           filters: [
             'customer_profile_id.eq(7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559)',

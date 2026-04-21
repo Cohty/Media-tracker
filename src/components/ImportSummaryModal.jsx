@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getAuthHeaders } from '../hooks/useUser'
 import { SHOWS } from '../constants'
 
 const SHOW_COLORS = Object.fromEntries(SHOWS.map(s => [s.name, s.hex]))

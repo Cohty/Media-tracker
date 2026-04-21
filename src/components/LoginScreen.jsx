@@ -5,8 +5,7 @@ export default function LoginScreen({ onLogin }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleAdmin(e) {
-    e?.preventDefault()
+  async function handleAdmin() {
     if (!password.trim()) return
     setLoading(true); setError('')
     try {
@@ -24,20 +23,21 @@ export default function LoginScreen({ onLogin }) {
 
   async function handleGuest() {
     setLoading(true)
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'guest' }),
-    })
-    const data = await res.json()
-    localStorage.setItem('mt_token', data.token)
-    onLogin()
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'guest' }),
+      })
+      const data = await res.json()
+      localStorage.setItem('mt_token', data.token)
+      onLogin()
+    } catch { setLoading(false) }
   }
 
   return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)' }}>
       <div style={{ width: 340 }}>
-        {/* Logo */}
         <div style={{ textAlign:'center', marginBottom:32 }}>
           <div style={{ fontFamily:'Press Start 2P', fontSize:13, color:'var(--purple)',
             textShadow:'0 0 20px rgba(180,78,255,0.8)', letterSpacing:'2px', lineHeight:1.6 }}>
@@ -54,32 +54,24 @@ export default function LoginScreen({ onLogin }) {
           </div>
           <div style={{ padding:'20px 20px 16px', display:'flex', flexDirection:'column', gap:12 }}>
 
-            {/* Guest */}
-            <button
-              className="btn-primary"
+            <button className="btn-primary"
               style={{ background:'rgba(0,229,255,0.1)', color:'var(--cyan)',
-                border:'1px solid rgba(0,229,255,0.4)', boxShadow:'none', width:'100%', padding:'10px 0' }}
+                border:'1px solid rgba(0,229,255,0.4)', boxShadow:'none', width:'100%', padding:'11px 0', fontSize:11 }}
               onClick={handleGuest} disabled={loading}>
-              Continue as Guest
+              👤 Continue as Guest
             </button>
 
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <div style={{ flex:1, height:1, background:'var(--border)' }} />
-              <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)' }}>or</span>
+              <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)' }}>admin only</span>
               <div style={{ flex:1, height:1, background:'var(--border)' }} />
             </div>
 
-            {/* Admin */}
             <div className="field" style={{ marginBottom:0 }}>
-              <label>Admin Password</label>
-              <input
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAdmin()}
-                autoFocus
-              />
+              <label>Password</label>
+              <input type="password" placeholder="Enter admin password"
+                value={password} onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAdmin()} autoComplete="current-password" />
             </div>
 
             {error && (
@@ -92,14 +84,13 @@ export default function LoginScreen({ onLogin }) {
 
             <button className="btn-primary" disabled={loading || !password.trim()}
               onClick={handleAdmin} style={{ width:'100%' }}>
-              {loading ? 'Signing in…' : 'Sign in as Admin'}
+              {loading ? 'Signing in…' : '🔑 Sign in as Admin'}
             </button>
-
           </div>
         </div>
 
         <div style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)', textAlign:'center', marginTop:16 }}>
-          Guests can submit posts and edits for admin review
+          Guests can submit posts for admin review
         </div>
       </div>
     </div>

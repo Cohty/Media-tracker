@@ -1,17 +1,28 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
-export function getAuthHeaders() { return {} }
+export function getAuthHeaders() {
+  const token = localStorage.getItem('mt_token')
+  return token ? { 'Authorization': `Bearer ${token}` } : {}
+}
 
 export function useUser() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetch('/api/me')
-      .then(r => r.json())
-      .then(data => { setUser(data); setLoading(false) })
-      .catch(() => { setUser({ authenticated: true, email: 'admin', isAdmin: true }); setLoading(false) })
+  const fetchUser = useCallback(async () => {
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('mt_token')
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+      const res = await fetch('/api/me', { headers })
+      const data = await res.json()
+      setUser(data)
+    } catch {
+      setUser({ authenticated: false, isAdmin: false, notLoggedIn: true })
+    } finally { setLoading(false) }
   }, [])
 
-  return { user, loading }
+  useEffect(() => { fetchUser() }, [fetchUser])
+
+  return { user, loading, refetchUser: fetchUser }
 }

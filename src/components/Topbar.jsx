@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getAuthHeaders } from '../hooks/useUser'
 import { useSprout } from '../hooks/useSprout'
 import SproutImportModal from './SproutImportModal'
 import ImportSummaryModal from './ImportSummaryModal'
@@ -16,7 +17,7 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
     if (!sproutReady || syncStatus === 'syncing') return
     setSyncStatus('syncing'); setSyncMsg('Syncing…')
     try {
-      const res = await fetch('/api/posts')
+      const res = await fetch('/api/posts', { headers: getAuthHeaders() })
       const posts = await res.json()
 
       // Build pre-sync snapshot of stats
@@ -27,7 +28,7 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
       for (const { id, stats } of results) {
         await fetch(`/api/posts/${id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
           body: JSON.stringify({ stats }),
         })
       }

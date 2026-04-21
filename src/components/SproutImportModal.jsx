@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getAuthHeaders } from '../hooks/useUser'
 import { SHOWS, TAG_PREFIXES, COLLECTION_TO_SHOW } from '../constants'
 
 const OUR_SHOWS = SHOWS.map(s => s.name)
@@ -36,7 +37,7 @@ export default function SproutImportModal({ isOpen, onClose, onDone, onShowSumma
     try {
       const res = await fetch('/api/sprout-import', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({
           days,
           videoOnly: false,
