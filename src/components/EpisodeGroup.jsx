@@ -220,6 +220,23 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
             {clipLabels.map(l => <span key={l} className="p-pill" style={{ background: CLIP_COLOR.bg, color: CLIP_COLOR.color, borderColor: CLIP_COLOR.border }}>{l}</span>)}
             {otherTypes.map(t => { const tc = TYPE_COLORS[t]; return tc ? <span key={t} className="p-pill" style={{ background: tc.bg, color: tc.color, borderColor: tc.border }}>{t}</span> : null })}
           </div>
+
+          {/* Total metrics across all posts in the group */}
+          {(() => {
+            const totalViews = posts.reduce((s, p) => s + (Number(p.stats?.views) || 0), 0)
+            const totalEng   = posts.reduce((s, p) => s + (Number(p.stats?.engagement) || 0), 0)
+            const totalImp   = posts.reduce((s, p) => s + (Number(p.stats?.impressions) || 0), 0)
+            const fmt = n => n >= 1000000 ? `${(n/1000000).toFixed(1)}M` : n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n)
+            if (totalViews === 0 && totalEng === 0 && totalImp === 0) return null
+            return (
+              <div className="card-stats-row" style={{ marginTop: 5 }}>
+                {totalViews > 0 && <span className="card-stat-badge" style={{ color:'#00e5ff', borderColor:'#00e5ff40', background:'#00e5ff10' }}>👁 {fmt(totalViews)}</span>}
+                {totalEng > 0   && <span className="card-stat-badge" style={{ color:'#ff2d78', borderColor:'#ff2d7840', background:'#ff2d7810' }}>💬 {fmt(totalEng)}</span>}
+                {totalImp > 0   && <span className="card-stat-badge" style={{ color:'#b44eff', borderColor:'#b44eff40', background:'#b44eff10' }}>📢 {fmt(totalImp)}</span>}
+              </div>
+            )
+          })()}
+
           {posts[0]?.date && (
             <div style={{ fontFamily: 'DM Mono', fontSize: 8, color: 'var(--text3)', marginTop: 4 }}>
               {posts[0].date}
