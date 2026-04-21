@@ -37,8 +37,17 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
     setEntries(prev => prev.map((e, i) => i !== idx ? e : { ...e, url, platform: detectPlatform(url), titleFetched: false, duplicate: null }))
     clearTimeout(timerRefs.current[idx])
 
-    // Duplicate check
-    const dup = posts.find(p => p.url.trim().toLowerCase() === url.trim().toLowerCase())
+    // Duplicate check — normalize URLs to catch x.com vs twitter.com and ?s=20 variants
+    function normUrl(u) {
+      try {
+        const parsed = new URL((u || '').toLowerCase().trim())
+        parsed.hostname = parsed.hostname.replace('x.com', 'twitter.com')
+        parsed.search = ''
+        return parsed.toString().replace(/\/$/, '')
+      } catch { return (u || '').toLowerCase().trim() }
+    }
+    const normInput = normUrl(url)
+    const dup = posts.find(p => normUrl(p.url) === normInput)
     if (dup) {
       setEntries(prev => prev.map((e, i) => i !== idx ? e : { ...e, duplicate: dup }))
       return
