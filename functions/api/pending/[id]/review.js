@@ -6,7 +6,7 @@ export async function onRequestPost({ params, request, env }) {
   if (!user.isAdmin) return jsonResponse({ error: 'Forbidden' }, 403)
 
   const pendingId = params.id
-  const { decision, note } = await request.json() // decision: 'approve' | 'reject'
+  const { decision, note, overridePayload } = await request.json() // decision: 'approve' | 'reject'
 
   const { results } = await env.DB.prepare(
     `SELECT * FROM pending_posts WHERE id = ? AND status = 'pending'`
@@ -14,7 +14,8 @@ export async function onRequestPost({ params, request, env }) {
 
   if (results.length === 0) return jsonResponse({ error: 'Not found or already reviewed' }, 404)
   const pending = results[0]
-  const payload = JSON.parse(pending.payload)
+  // Use overridePayload if admin edited the submission before approving
+  const payload = overridePayload || JSON.parse(pending.payload)
 
   if (decision === 'approve') {
     if (pending.action === 'add') {
