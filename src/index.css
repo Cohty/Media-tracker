@@ -1114,9 +1114,7 @@ body {
 [data-theme="aero"] .col-toggle-bar,
 [data-theme="aero"] .batch-bar,
 [data-theme="aero"] .date-range-bar {
-  background: rgba(255,255,255,0.7) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255,255,255,0.92) !important;
   border: 1px solid rgba(120,200,240,0.5) !important;
   box-shadow: 0 4px 20px rgba(0,120,200,0.12), inset 0 1px 0 rgba(255,255,255,0.9) !important;
 }

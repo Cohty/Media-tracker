@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { PLATFORMS } from '../constants'
 
 const TYPE_COLORS = {
@@ -33,7 +33,7 @@ function StatBadge({ icon, value, color }) {
   )
 }
 
-export default function Card({ post, onDelete, onMove, highlighted, selected, onToggleSelect, onUpdatePost }) {
+const Card = memo(function Card({ post, onDelete, onMove, highlighted, selected, onToggleSelect, onUpdatePost }) {
   const [confirming, setConfirming] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState(null) // 'ok' | 'miss' | 'err'
@@ -164,3 +164,5 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
     </div>
   )
 }
+)
+export default Card

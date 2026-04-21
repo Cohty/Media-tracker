@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, lazy, Suspense } from 'react'
 import { SHOWS } from './constants'
 import { usePosts } from './hooks/usePosts'
 import { useUser } from './hooks/useUser'
@@ -7,17 +7,17 @@ import StatsBar from './components/StatsBar'
 import DateRangeBar, { useDateRange } from './components/DateRangeBar'
 import Nav from './components/Nav'
 import Board from './components/Board'
-import CalendarView from './components/CalendarView'
-import AnalyticsView from './components/AnalyticsView'
-import PodcastView from './components/PodcastView'
+const CalendarView = lazy(() => import('./components/CalendarView'))
+const AnalyticsView = lazy(() => import('./components/AnalyticsView'))
+const PodcastView = lazy(() => import('./components/PodcastView'))
 import LogModal from './components/LogModal'
 import MovePostModal from './components/MovePostModal'
 import ReviewPanel from './components/ReviewPanel'
 import BatchBar from './components/BatchBar'
 import ImportSummaryModal from './components/ImportSummaryModal'
-import InboxView from './components/InboxView'
-import HelpView from './components/HelpView'
-import LeaderboardView from './components/LeaderboardView'
+const InboxView = lazy(() => import('./components/InboxView'))
+const HelpView = lazy(() => import('./components/HelpView'))
+const LeaderboardView = lazy(() => import('./components/LeaderboardView'))
 
 export default function App() {
   const { user } = useUser()
@@ -32,6 +32,11 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [summaryLogId, setSummaryLogId] = useState(null)
   const [boardSearch, setBoardSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(boardSearch), 200)
+    return () => clearTimeout(t)
+  }, [boardSearch])
   const [theme, setTheme] = useState(() => localStorage.getItem('mt_theme') || 'dark')
 
   // Apply theme to root element
@@ -67,8 +72,8 @@ export default function App() {
 
   // Board posts — search ignores date range and searches ALL posts
   const boardPosts = useMemo(() => {
-    if (!boardSearch.trim()) return rangeFilteredPosts
-    const q = boardSearch.toLowerCase()
+    if (!debouncedSearch.trim()) return rangeFilteredPosts
+    const q = debouncedSearch.toLowerCase()
     return posts.filter(p =>
       p.title?.toLowerCase().includes(q) ||
       p.show?.toLowerCase().includes(q) ||
@@ -77,7 +82,7 @@ export default function App() {
       p.episodeNumber?.toLowerCase().includes(q) ||
       p.url?.toLowerCase().includes(q)
     )
-  }, [posts, rangeFilteredPosts, boardSearch])
+  }, [posts, rangeFilteredPosts, debouncedSearch])
 
   function showToast(msg, type = 'info') {
     setToast({ msg, type })
@@ -157,6 +162,7 @@ export default function App() {
           customEnd={customEnd} setCustomEnd={setCustomEnd}
           range={range} postCount={boardSearch.trim() ? boardPosts.length : rangeFilteredPosts.length}
           search={boardSearch} setSearch={setBoardSearch}
+          searching={boardSearch !== debouncedSearch}
         />
       )}
 
@@ -176,8 +182,10 @@ export default function App() {
         onImportDone={logId => setSummaryLogId(logId)} />}
       {activeView === 'podcast'   && <PodcastView />}
       {activeView === 'inbox'     && <InboxView posts={posts} onUpdatePost={handleUpdatePost} onDeletePost={handleDeletePost} />}
+      <Suspense fallback={<div style={{padding:40,textAlign:'center',fontFamily:'DM Mono',fontSize:10,color:'var(--text3)'}}>Loading…</div>}>
       {activeView === 'leaderboard' && <LeaderboardView posts={posts} />}
       {activeView === 'help'      && <HelpView theme={theme} onToggleTheme={() => setTheme(t => t === 'aero' ? 'dark' : 'aero')} />}
+      </Suspense>
 
       {toast && <div className={`toast toast--${toast.type}`}>{toast.type==='pending'?'⏳ ':'✓ '}{toast.msg}</div>}
 

@@ -144,7 +144,7 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
   )
 }
 
-export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onUpdatePost }) {
+const EpisodeGroup = memo(function EpisodeGroup({ groupKey, label, isEpisode, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onUpdatePost }) {
   const containsHighlighted = posts.some(p => p.id === highlightedPostId)
   const [expanded, setExpanded] = useState(false)
 
@@ -233,3 +233,5 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
     </div>
   )
 }
+)
+export default EpisodeGroup
