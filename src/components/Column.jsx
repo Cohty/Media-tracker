@@ -1,4 +1,4 @@
-import { useMemo, memo } from 'react'
+import { useMemo } from 'react'
 import Card from './Card'
 import EpisodeGroup from './EpisodeGroup'
 
@@ -6,7 +6,7 @@ function normalizeTitle(t) {
   return t.toLowerCase().trim().replace(/\s+/g, ' ')
 }
 
-const Column = memo(function Column({ show, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onHide, onUpdatePost }) {
+export default function Column({ show, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onHide, onUpdatePost }) {
   const items = useMemo(() => {
     const epGroups = {}
     const titleGroups = {}
@@ -83,5 +83,3 @@ const Column = memo(function Column({ show, posts, onDelete, onMove, highlighted
     </div>
   )
 }
-)
-export default Column

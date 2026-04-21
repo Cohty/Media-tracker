@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, lazy, Suspense } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { SHOWS } from './constants'
 import { usePosts } from './hooks/usePosts'
 import { useUser } from './hooks/useUser'
@@ -7,17 +7,17 @@ import StatsBar from './components/StatsBar'
 import DateRangeBar, { useDateRange } from './components/DateRangeBar'
 import Nav from './components/Nav'
 import Board from './components/Board'
-const CalendarView = lazy(() => import('./components/CalendarView'))
-const AnalyticsView = lazy(() => import('./components/AnalyticsView'))
-const PodcastView = lazy(() => import('./components/PodcastView'))
+import CalendarView from './components/CalendarView'
+import AnalyticsView from './components/AnalyticsView'
+import PodcastView from './components/PodcastView'
 import LogModal from './components/LogModal'
 import MovePostModal from './components/MovePostModal'
 import ReviewPanel from './components/ReviewPanel'
 import BatchBar from './components/BatchBar'
 import ImportSummaryModal from './components/ImportSummaryModal'
-const InboxView = lazy(() => import('./components/InboxView'))
-const HelpView = lazy(() => import('./components/HelpView'))
-const LeaderboardView = lazy(() => import('./components/LeaderboardView'))
+import InboxView from './components/InboxView'
+import HelpView from './components/HelpView'
+import LeaderboardView from './components/LeaderboardView'
 
 export default function App() {
   const { user } = useUser()
@@ -32,18 +32,8 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [summaryLogId, setSummaryLogId] = useState(null)
   const [boardSearch, setBoardSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(boardSearch), 200)
-    return () => clearTimeout(t)
-  }, [boardSearch])
-  const [theme, setTheme] = useState(() => localStorage.getItem('mt_theme') || 'dark')
 
-  // Apply theme to root element
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme === 'aero' ? 'aero' : '')
-    localStorage.setItem('mt_theme', theme)
-  }, [theme])
+
 
   // Hidden columns — lifted here so StatsBar and Board stay in sync
   const [hiddenCols, setHiddenCols] = useState(() => {
@@ -72,8 +62,8 @@ export default function App() {
 
   // Board posts — search ignores date range and searches ALL posts
   const boardPosts = useMemo(() => {
-    if (!debouncedSearch.trim()) return rangeFilteredPosts
-    const q = debouncedSearch.toLowerCase()
+    if (!boardSearch.trim()) return rangeFilteredPosts
+    const q = boardSearch.toLowerCase()
     return posts.filter(p =>
       p.title?.toLowerCase().includes(q) ||
       p.show?.toLowerCase().includes(q) ||
@@ -82,7 +72,7 @@ export default function App() {
       p.episodeNumber?.toLowerCase().includes(q) ||
       p.url?.toLowerCase().includes(q)
     )
-  }, [posts, rangeFilteredPosts, debouncedSearch])
+  }, [posts, rangeFilteredPosts, boardSearch])
 
   function showToast(msg, type = 'info') {
     setToast({ msg, type })
