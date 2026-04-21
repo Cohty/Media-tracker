@@ -1,13 +1,15 @@
 export function getUser(request, env) {
-  // Check Authorization header (Bearer token from localStorage)
   const auth = request.headers.get('authorization') || ''
   if (auth.startsWith('Bearer ')) {
     try {
       const session = JSON.parse(atob(auth.slice(7)))
-      const email = session.email || ''
-      const adminEmails = (env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
-      const isAdmin = session.isAdmin === true && adminEmails.includes(email.toLowerCase())
-      return { email, isAdmin }
+      if (session.isAdmin) {
+        const adminEmails = (env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
+        const isAdmin = adminEmails.includes((session.email || '').toLowerCase())
+        return { email: session.email || 'admin', isAdmin }
+      }
+      // Guest token
+      return { email: 'guest', isAdmin: false }
     } catch {}
   }
   return { email: '', isAdmin: false, notLoggedIn: true }
