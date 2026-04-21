@@ -162,7 +162,6 @@ export default function App() {
           customEnd={customEnd} setCustomEnd={setCustomEnd}
           range={range} postCount={boardSearch.trim() ? boardPosts.length : rangeFilteredPosts.length}
           search={boardSearch} setSearch={setBoardSearch}
-          searching={boardSearch !== debouncedSearch}
         />
       )}
 
