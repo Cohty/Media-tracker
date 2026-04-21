@@ -42,7 +42,11 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
       try {
         const parsed = new URL((u || '').toLowerCase().trim())
         parsed.hostname = parsed.hostname.replace('x.com', 'twitter.com')
+        // Keep YouTube ?v= param, strip everything else (tracking params like ?s=20)
+        const isYT = parsed.hostname.includes('youtube.com') || parsed.hostname.includes('youtu.be')
+        const v = parsed.searchParams.get('v')
         parsed.search = ''
+        if (isYT && v) parsed.searchParams.set('v', v)
         return parsed.toString().replace(/\/$/, '')
       } catch { return (u || '').toLowerCase().trim() }
     }

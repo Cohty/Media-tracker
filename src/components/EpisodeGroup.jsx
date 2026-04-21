@@ -15,11 +15,14 @@ const CLIP_COLOR = { color: '#00e5ff', bg: 'rgba(0,229,255,0.08)', border: 'rgba
 
 function normalizeUrl(url) {
   try {
-    const u = new URL(url.toLowerCase().trim())
+    const u = new URL((url || '').toLowerCase().trim())
     u.hostname = u.hostname.replace('x.com', 'twitter.com')
+    const isYT = u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')
+    const v = u.searchParams.get('v')
     u.search = ''
+    if (isYT && v) u.searchParams.set('v', v)
     return u.toString().replace(/\/$/, '')
-  } catch { return url.toLowerCase().trim() }
+  } catch { return (url || '').toLowerCase().trim() }
 }
 
 function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect, onUpdatePost }) {
