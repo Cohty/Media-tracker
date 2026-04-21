@@ -13,6 +13,7 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
   const [mediaType, setMediaType] = useState('')
   const [episodeNumber, setEpisodeNumber] = useState('')
   const [syncUrl, setSyncUrl] = useState('')
+  const [postDate, setPostDate] = useState('')
   const [manualViews, setManualViews] = useState('')
   const [manualEngagement, setManualEngagement] = useState('')
   const [manualImpressions, setManualImpressions] = useState('')
@@ -25,6 +26,10 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
       setMediaType(post.mediaType || 'Full Episode')
       setEpisodeNumber(post.episodeNumber || '')
       setSyncUrl(post.syncUrl || '')
+      // Convert MM/DD/YYYY to YYYY-MM-DD for date input
+      const d = post.date || ''
+      const parts = d.split('/')
+      setPostDate(parts.length === 3 ? `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}` : '')
       setManualViews(post.stats?.views || '')
       setManualEngagement(post.stats?.engagement || '')
       setManualImpressions(post.stats?.impressions || '')
@@ -72,6 +77,7 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
       episodeNumber,
       clipIndex: mediaType === 'Clip' ? clipIndex : '',
       syncUrl: syncUrl.trim(),
+      date: postDate ? new Date(postDate + 'T12:00:00').toLocaleDateString('en-US', { month:'2-digit', day:'2-digit', year:'numeric' }) : undefined,
       stats: {
         views: manualViews.trim(),
         engagement: manualEngagement.trim(),
@@ -87,6 +93,7 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
     mediaType !== (post.mediaType || '') ||
     episodeNumber !== (post.episodeNumber || '') ||
     syncUrl.trim() !== (post.syncUrl || '') ||
+    postDate !== '' ||
     manualViews !== (post.stats?.views || '') ||
     manualEngagement !== (post.stats?.engagement || '') ||
     manualImpressions !== (post.stats?.impressions || '')
@@ -147,6 +154,13 @@ export default function MovePostModal({ post, isOpen, onClose, onSave, posts }) 
                 <span className="clip-index-badge">{clipIndex || 'Clip'}</span>
               </div>
             )}
+          </div>
+
+          <div className="field" style={{ marginTop: 4 }}>
+            <label>Publish Date <span style={{ color:'var(--text3)', fontWeight:400 }}>(change if logged with wrong date)</span></label>
+            <input type="date" value={postDate}
+              onChange={e => setPostDate(e.target.value)}
+              style={{ colorScheme: 'dark' }} />
           </div>
 
           <div className="field" style={{ marginTop: 4 }}>

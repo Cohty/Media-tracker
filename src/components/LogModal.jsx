@@ -5,7 +5,8 @@ const newEntry = () => ({ url: '', title: '', fetching: false, titleFetched: fal
 
 export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, posts, isContributor }) {
   const [entries, setEntries] = useState([newEntry()])
-  const [shared, setShared] = useState({ show: SHOWS[0].name, mediaType: 'Full Episode', episodeNumber: '' })
+  const today = new Date().toISOString().split('T')[0]
+  const [shared, setShared] = useState({ show: SHOWS[0].name, mediaType: 'Full Episode', episodeNumber: '', date: today })
   const urlRefs = useRef([])
   const timerRefs = useRef([])
 
@@ -77,7 +78,7 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
   async function handleSubmit() {
     if (!canSubmit) return
     for (const e of validEntries) {
-      await onSubmit({ url: e.url, title: e.title, platform: e.platform, show: shared.show, mediaType: shared.mediaType, episodeNumber: shared.episodeNumber, clipIndex })
+      await onSubmit({ url: e.url, title: e.title, platform: e.platform, show: shared.show, mediaType: shared.mediaType, episodeNumber: shared.episodeNumber, clipIndex, date: shared.date })
     }
     onClose()
   }
