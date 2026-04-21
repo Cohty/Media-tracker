@@ -76,10 +76,18 @@ function normalizeUrl(url) {
   try {
     const u = new URL((url || '').toLowerCase().trim())
     u.hostname = u.hostname.replace('x.com', 'twitter.com')
-    const isYT = u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')
+    // Handle YouTube: normalize both /shorts/ID and /watch?v=ID to /watch?v=ID
+    if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
+      let videoId = u.searchParams.get('v')
+      const shortsMatch = u.pathname.match(/\/shorts\/([a-zA-Z0-9_-]+)/)
+      if (shortsMatch) videoId = shortsMatch[1]
+      const youtubeBeMatch = u.hostname.includes('youtu.be') ? u.pathname.match(/\/([a-zA-Z0-9_-]+)/) : null
+      if (youtubeBeMatch) videoId = youtubeBeMatch[1]
+      if (videoId) return `https://www.youtube.com/watch?v=${videoId}`
+    }
     const v = u.searchParams.get('v')
     u.search = ''
-    if (isYT && v) u.searchParams.set('v', v)
+    if (v) u.searchParams.set('v', v)
     return u.toString().replace(/\/$/, '')
   } catch { return (url || '').toLowerCase().trim() }
 }

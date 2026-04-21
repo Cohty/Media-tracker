@@ -42,11 +42,18 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
       try {
         const parsed = new URL((u || '').toLowerCase().trim())
         parsed.hostname = parsed.hostname.replace('x.com', 'twitter.com')
-        // Keep YouTube ?v= param, strip everything else (tracking params like ?s=20)
-        const isYT = parsed.hostname.includes('youtube.com') || parsed.hostname.includes('youtu.be')
+        // Handle YouTube: extract video ID from both watch and shorts formats
+        if (parsed.hostname.includes('youtube.com') || parsed.hostname.includes('youtu.be')) {
+          let videoId = parsed.searchParams.get('v')
+          const shortsMatch = parsed.pathname.match(/\/shorts\/([a-zA-Z0-9_-]+)/)
+          if (shortsMatch) videoId = shortsMatch[1]
+          const youtubeBeMatch = parsed.hostname.includes('youtu.be') ? parsed.pathname.match(/\/([a-zA-Z0-9_-]+)/) : null
+          if (youtubeBeMatch) videoId = youtubeBeMatch[1]
+          if (videoId) return `https://www.youtube.com/watch?v=${videoId}`
+        }
         const v = parsed.searchParams.get('v')
         parsed.search = ''
-        if (isYT && v) parsed.searchParams.set('v', v)
+        if (v) parsed.searchParams.set('v', v)
         return parsed.toString().replace(/\/$/, '')
       } catch { return (u || '').toLowerCase().trim() }
     }

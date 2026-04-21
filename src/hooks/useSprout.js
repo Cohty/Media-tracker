@@ -27,16 +27,20 @@ async function sproutPost(path, body) {
 // Normalize URLs so x.com↔twitter.com and query params don't block matching
 function normalizeUrl(url) {
   try {
-    const u = new URL(url.toLowerCase().trim())
-    // x.com and twitter.com are the same
+    const u = new URL((url || '').toLowerCase().trim())
     u.hostname = u.hostname.replace('x.com', 'twitter.com')
-    // Strip all query params (Sprout strips ?s=20 etc.)
+    // Normalize YouTube: /shorts/ID and /watch?v=ID → always /watch?v=ID (Sprout uses watch format)
+    if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
+      let videoId = u.searchParams.get('v')
+      const shortsMatch = u.pathname.match(/\/shorts\/([a-zA-Z0-9_-]+)/)
+      if (shortsMatch) videoId = shortsMatch[1]
+      const youtubeBeMatch = u.hostname.includes('youtu.be') ? u.pathname.match(/\/([a-zA-Z0-9_-]+)/) : null
+      if (youtubeBeMatch) videoId = youtubeBeMatch[1]
+      if (videoId) return `https://www.youtube.com/watch?v=${videoId}`
+    }
     u.search = ''
-    // Strip trailing slash
     return u.toString().replace(/\/$/, '')
-  } catch {
-    return url.toLowerCase().trim()
-  }
+  } catch { return (url || '').toLowerCase().trim() }
 }
 
 export function useSprout() {
