@@ -171,10 +171,8 @@ export default function App() {
         onImportDone={logId => setSummaryLogId(logId)} />}
       {activeView === 'podcast'   && <PodcastView />}
       {activeView === 'inbox'     && <InboxView posts={posts} onUpdatePost={handleUpdatePost} onDeletePost={handleDeletePost} />}
-      <Suspense fallback={<div style={{padding:40,textAlign:'center',fontFamily:'DM Mono',fontSize:10,color:'var(--text3)'}}>Loading…</div>}>
       {activeView === 'leaderboard' && <LeaderboardView posts={posts} />}
-      {activeView === 'help'      && <HelpView theme={theme} onToggleTheme={() => setTheme(t => t === 'aero' ? 'dark' : 'aero')} />}
-      </Suspense>
+      {activeView === 'help'        && <HelpView />}
 
       {toast && <div className={`toast toast--${toast.type}`}>{toast.type==='pending'?'⏳ ':'✓ '}{toast.msg}</div>}
 
