@@ -47,7 +47,7 @@ export default function SproutImportModal({ isOpen, onClose, onDone, onShowSumma
       setMsg('Processing posts…')
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
-      setResult(data); setStep('done'); onDone()
+      setResult(data); setStep('done'); onDone(data.logId)
     } catch (err) { setMsg(err.message); setStep('error') }
   }
 

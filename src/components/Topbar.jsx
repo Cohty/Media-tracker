@@ -119,8 +119,8 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
       </header>
 
       <SproutImportModal isOpen={importOpen} onClose={() => setImportOpen(false)}
-        onDone={() => { setImportOpen(false); onPostsUpdated?.() }}
-        onShowSummary={logId => setSummaryLogId(logId)} />
+        onDone={(logId) => { setImportOpen(false); onPostsUpdated?.(); if (logId) setSummaryLogId(logId) }}
+        onShowSummary={logId => { setImportOpen(false); setSummaryLogId(logId) }} />
       <ImportSummaryModal logId={summaryLogId} isOpen={!!summaryLogId} onClose={() => setSummaryLogId(null)} />
     </>
   )
