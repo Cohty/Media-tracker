@@ -1,26 +1,15 @@
 export function getUser(request, env) {
-  const auth = request.headers.get('authorization') || ''
-  if (auth.startsWith('Bearer ')) {
-    try {
-      const session = JSON.parse(atob(auth.slice(7)))
-      if (session.isAdmin) {
-        const adminEmails = (env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
-        const isAdmin = adminEmails.includes((session.email || '').toLowerCase())
-        return { email: session.email || 'admin', isAdmin }
-      }
-      // Guest token
-      return { email: 'guest', isAdmin: false }
-    } catch {}
+  const email = request.headers.get('cf-access-authenticated-user-email') || ''
+  if (email) {
+    const adminEmails = (env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
+    return { email, isAdmin: adminEmails.includes(email.toLowerCase()) }
   }
-  return { email: '', isAdmin: false, notLoggedIn: true }
+  // No CF Access header — default to admin (internal tool)
+  return { email: 'admin', isAdmin: true }
 }
 
 export function requireAuth(request, env) {
-  const user = getUser(request, env)
-  if (user.notLoggedIn) {
-    return { error: jsonResponse({ error: 'Not authenticated' }, 401), user: null }
-  }
-  return { error: null, user }
+  return { error: null, user: getUser(request, env) }
 }
 
 export function jsonResponse(data, status = 200) {

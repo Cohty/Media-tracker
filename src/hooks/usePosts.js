@@ -6,7 +6,7 @@ export function usePosts() {
 
   const fetchPosts = useCallback(async () => {
     try {
-      const res = await fetch('/api/posts', { headers: getAuthHeaders() })
+      const res = await fetch('/api/posts')
       if (res.ok) setPosts(await res.json())
     } catch (e) {
       console.error('Failed to fetch posts', e)
@@ -27,7 +27,7 @@ export function usePosts() {
     }
     const res = await fetch('/api/posts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(post),
     })
     const result = await res.json()
@@ -49,7 +49,7 @@ export function usePosts() {
   async function updatePost(id, updates) {
     const res = await fetch(`/api/posts/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     })
     const result = await res.json()
