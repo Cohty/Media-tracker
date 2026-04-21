@@ -91,11 +91,15 @@ body {
 }
 
 .board {
-  display: flex; gap: 12px; padding: 18px 24px 48px;
+  display: flex; gap: 12px; padding: 18px 24px 32px;
   overflow-x: auto; align-items: flex-start;
-  scrollbar-width: thin; scrollbar-color: var(--surface3) transparent;
+  scrollbar-width: thin; scrollbar-color: rgba(180,78,255,0.4) rgba(255,255,255,0.04);
   min-height: calc(100vh - 200px);
 }
+.board::-webkit-scrollbar { height: 6px; }
+.board::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
+.board::-webkit-scrollbar-thumb { background: rgba(180,78,255,0.4); border-radius: 3px; }
+.board::-webkit-scrollbar-thumb:hover { background: rgba(180,78,255,0.7); }
 
 .column {
   flex: 0 0 255px; display: flex; flex-direction: column;
