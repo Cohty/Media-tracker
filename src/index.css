@@ -1071,3 +1071,170 @@ body {
   background: rgba(255,45,120,0.15) !important;
   box-shadow: var(--win-out), 0 0 8px rgba(255,45,120,0.25) !important;
 }
+
+/* ═══════════════════════════════════════════════════════
+   FRUTIGER AERO THEME
+   ═══════════════════════════════════════════════════════ */
+[data-theme="aero"] {
+  --bg:        #d4eef7;
+  --surface:   rgba(255,255,255,0.75);
+  --surface2:  rgba(255,255,255,0.55);
+  --border:    rgba(100,180,220,0.35);
+  --border2:   rgba(100,180,220,0.2);
+  --text:      #1a3a4a;
+  --text2:     #2a5a72;
+  --text3:     #6a9ab0;
+  --purple:    #0077cc;
+  --cyan:      #00b4d8;
+  --green:     #4caf50;
+  --pink:      #e91e8c;
+  --yellow:    #f9a825;
+  --win-out:   0 2px 8px rgba(0,120,180,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
+  --win-in:    inset 0 2px 6px rgba(0,100,160,0.12);
+  --radius:    10px;
+  background:  linear-gradient(160deg, #c8eaf7 0%, #e0f4e8 40%, #b8dff0 100%);
+  min-height: 100vh;
+}
+
+/* Aero body background */
+[data-theme="aero"] body,
+[data-theme="aero"] #root {
+  background: linear-gradient(160deg, #c8eaf7 0%, #e0f4e8 40%, #b8dff0 100%) !important;
+  min-height: 100vh;
+}
+
+/* Glass panels */
+[data-theme="aero"] .win95-window,
+[data-theme="aero"] .card,
+[data-theme="aero"] .modal,
+[data-theme="aero"] .statsbar,
+[data-theme="aero"] .stat-card,
+[data-theme="aero"] .topbar,
+[data-theme="aero"] .main-nav,
+[data-theme="aero"] .col-toggle-bar,
+[data-theme="aero"] .batch-bar,
+[data-theme="aero"] .date-range-bar {
+  background: rgba(255,255,255,0.7) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(120,200,240,0.5) !important;
+  box-shadow: 0 4px 20px rgba(0,120,200,0.12), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+
+/* Aero titlebar — glossy blue gradient */
+[data-theme="aero"] .win95-titlebar {
+  background: linear-gradient(180deg, #5bb8e8 0%, #2288cc 45%, #1a6eb0 100%) !important;
+  border-bottom: 1px solid #1560a0 !important;
+}
+[data-theme="aero"] .win95-title { color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important; }
+
+/* Aero topbar */
+[data-theme="aero"] .topbar {
+  background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(220,240,255,0.85) 100%) !important;
+  border-bottom: 1px solid rgba(100,180,240,0.4) !important;
+  box-shadow: 0 2px 12px rgba(0,100,200,0.1) !important;
+}
+[data-theme="aero"] .topbar-logo { color: #0077cc !important; text-shadow: 0 0 8px rgba(0,120,220,0.3) !important; }
+[data-theme="aero"] .topbar-logo span { color: #00b4d8 !important; }
+[data-theme="aero"] .topbar-meta { color: #6a9ab0 !important; }
+
+/* Nav tabs */
+[data-theme="aero"] .main-nav { background: rgba(255,255,255,0.8) !important; border-bottom: 1px solid rgba(100,180,240,0.3) !important; }
+[data-theme="aero"] .nav-tab { color: #2a6a90 !important; }
+[data-theme="aero"] .nav-tab.active {
+  color: #0055aa !important;
+  border-bottom: 2px solid #0077cc !important;
+  background: rgba(0,120,220,0.08) !important;
+}
+
+/* Cards */
+[data-theme="aero"] .card {
+  background: rgba(255,255,255,0.75) !important;
+  border: 1px solid rgba(100,180,230,0.4) !important;
+  box-shadow: 0 2px 12px rgba(0,100,180,0.1), inset 0 1px 0 rgba(255,255,255,0.95) !important;
+}
+[data-theme="aero"] .card:hover { box-shadow: 0 6px 24px rgba(0,100,180,0.18), inset 0 1px 0 rgba(255,255,255,0.95) !important; }
+[data-theme="aero"] .card-title { color: #1a3a4a !important; }
+[data-theme="aero"] .card-date { color: #6a9ab0 !important; }
+
+/* Column titlebar */
+[data-theme="aero"] .col-titlebar {
+  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(210,235,255,0.8) 100%) !important;
+  border-bottom: 1px solid rgba(100,170,230,0.4) !important;
+}
+[data-theme="aero"] .col-name { color: #1a3a4a !important; }
+
+/* Buttons */
+[data-theme="aero"] .btn-primary {
+  background: linear-gradient(180deg, #5bc8f0 0%, #1a90d0 50%, #0070b8 100%) !important;
+  border: 1px solid #0060a0 !important;
+  box-shadow: 0 2px 8px rgba(0,100,180,0.3), inset 0 1px 0 rgba(255,255,255,0.5) !important;
+  color: #fff !important;
+}
+[data-theme="aero"] .btn-ghost {
+  background: rgba(255,255,255,0.7) !important;
+  border: 1px solid rgba(100,180,230,0.5) !important;
+  color: #2a6a90 !important;
+}
+[data-theme="aero"] .topbar-action-btn {
+  background: rgba(255,255,255,0.7) !important;
+  border: 1px solid rgba(100,180,230,0.4) !important;
+  color: #2a6a90 !important;
+}
+[data-theme="aero"] .topbar-action-btn:hover {
+  background: rgba(0,120,220,0.1) !important;
+  border-color: rgba(0,120,220,0.4) !important;
+  color: #0055aa !important;
+}
+[data-theme="aero"] .topbar-action-btn--log {
+  background: linear-gradient(180deg, rgba(100,210,100,0.3) 0%, rgba(60,180,60,0.15) 100%) !important;
+  border-color: rgba(60,160,60,0.5) !important;
+  color: #2a7a2a !important;
+}
+
+/* Metric buttons */
+[data-theme="aero"] .metric-btn {
+  background: rgba(255,255,255,0.7) !important;
+  border: 1px solid rgba(100,180,230,0.35) !important;
+  color: #4a8aaa !important;
+}
+[data-theme="aero"] .metric-btn.active {
+  background: rgba(0,120,220,0.12) !important;
+  border-color: rgba(0,120,220,0.4) !important;
+}
+
+/* Stats bar */
+[data-theme="aero"] .stat-label { color: #5a8aaa !important; }
+[data-theme="aero"] .stat-sub { color: #7aaac0 !important; }
+
+/* Pills */
+[data-theme="aero"] .p-pill { box-shadow: 0 1px 3px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6) !important; }
+
+/* Log Post button */
+[data-theme="aero"] .btn-log {
+  background: linear-gradient(180deg, #7dd87d 0%, #4caf50 50%, #388e3c 100%) !important;
+  border: 1px solid #2e7d32 !important;
+  box-shadow: 0 2px 8px rgba(60,160,60,0.3), inset 0 1px 0 rgba(255,255,255,0.4) !important;
+  color: #fff !important;
+}
+
+/* Scrollbar */
+[data-theme="aero"] ::-webkit-scrollbar-track { background: rgba(200,230,250,0.5) !important; }
+[data-theme="aero"] ::-webkit-scrollbar-thumb { background: rgba(0,120,200,0.3) !important; }
+
+/* VT323 numbers in aero */
+[data-theme="aero"] .stat-value { text-shadow: 0 0 8px rgba(0,120,220,0.2) !important; }
+
+/* Col toggle pills */
+[data-theme="aero"] .col-toggle-pill {
+  background: rgba(255,255,255,0.7) !important;
+  border: 1px solid rgba(100,180,230,0.4) !important;
+  color: #2a6a90 !important;
+}
+
+/* Modal */
+[data-theme="aero"] .modal-titlebar {
+  background: linear-gradient(180deg, #5bb8e8 0%, #1a80c4 100%) !important;
+}
+[data-theme="aero"] .modal-titlebar-text { color: #fff !important; }
+[data-theme="aero"] .overlay { background: rgba(0,80,160,0.3) !important; backdrop-filter: blur(4px) !important; }

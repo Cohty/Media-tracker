@@ -215,7 +215,7 @@ function FAQItem({ q, a }) {
   )
 }
 
-export default function HelpView() {
+export default function HelpView({ theme, onToggleTheme }) {
   const [activeSection, setActiveSection] = useState(null)
   const filtered = activeSection ? SECTIONS.filter(s => s.title === activeSection) : SECTIONS
 
@@ -252,8 +252,35 @@ export default function HelpView() {
         </div>
       ))}
 
-      <div style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--text3)', textAlign:'center', marginTop:32, lineHeight:1.8 }}>
+      <div style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--text3)', textAlign:'center', marginTop:32, lineHeight:1.8, position:'relative' }}>
         Built for The Block media team · Cloudflare Pages + D1 + Sprout Social + Transistor.fm
+        <br />
+        <button
+          onClick={onToggleTheme}
+          title={theme === 'aero' ? 'Switch to Dark theme' : 'Switch to Aero theme'}
+          style={{
+            marginTop: 16,
+            background: 'none',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 6,
+            padding: '4px 10px',
+            cursor: 'pointer',
+            fontFamily: 'DM Mono',
+            fontSize: 8,
+            color: 'rgba(255,255,255,0.08)',
+            transition: 'all .3s',
+            letterSpacing: '1px',
+          }}
+          onMouseEnter={e => {
+            e.target.style.color = theme === 'aero' ? '#1a3a4a' : 'rgba(255,255,255,0.5)'
+            e.target.style.borderColor = theme === 'aero' ? 'rgba(0,100,200,0.3)' : 'rgba(255,255,255,0.15)'
+          }}
+          onMouseLeave={e => {
+            e.target.style.color = 'rgba(255,255,255,0.08)'
+            e.target.style.borderColor = 'rgba(255,255,255,0.06)'
+          }}>
+          {theme === 'aero' ? '◈ dark mode' : '◈ aero'}
+        </button>
       </div>
     </div>
   )

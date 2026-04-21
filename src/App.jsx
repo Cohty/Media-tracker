@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { SHOWS } from './constants'
 import { usePosts } from './hooks/usePosts'
 import { useUser } from './hooks/useUser'
@@ -32,6 +32,13 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [summaryLogId, setSummaryLogId] = useState(null)
   const [boardSearch, setBoardSearch] = useState('')
+  const [theme, setTheme] = useState(() => localStorage.getItem('mt_theme') || 'dark')
+
+  // Apply theme to root element
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme === 'aero' ? 'aero' : '')
+    localStorage.setItem('mt_theme', theme)
+  }, [theme])
 
   // Hidden columns — lifted here so StatsBar and Board stay in sync
   const [hiddenCols, setHiddenCols] = useState(() => {
@@ -170,7 +177,7 @@ export default function App() {
       {activeView === 'podcast'   && <PodcastView />}
       {activeView === 'inbox'     && <InboxView posts={posts} onUpdatePost={handleUpdatePost} onDeletePost={handleDeletePost} />}
       {activeView === 'leaderboard' && <LeaderboardView posts={posts} />}
-      {activeView === 'help'      && <HelpView />}
+      {activeView === 'help'      && <HelpView theme={theme} onToggleTheme={() => setTheme(t => t === 'aero' ? 'dark' : 'aero')} />}
 
       {toast && <div className={`toast toast--${toast.type}`}>{toast.type==='pending'?'⏳ ':'✓ '}{toast.msg}</div>}
 
