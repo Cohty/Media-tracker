@@ -1,10 +1,13 @@
+import { getUser, jsonResponse } from '../_auth.js'
+
 export async function onRequestGet({ request, env }) {
-  const email = request.headers.get('cf-access-authenticated-user-email') || ''
-  const adminEmails = (env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
-  const isAdmin = !email || adminEmails.includes(email.toLowerCase())
-  return new Response(JSON.stringify({
+  const user = getUser(request, env)
+  if (user.notLoggedIn) {
+    return jsonResponse({ error: 'Not authenticated' }, 401)
+  }
+  return jsonResponse({
     authenticated: true,
-    email: email || 'admin',
-    isAdmin,
-  }), { headers: { 'Content-Type': 'application/json' } })
+    email: user.email,
+    isAdmin: user.isAdmin,
+  })
 }
