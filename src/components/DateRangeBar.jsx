@@ -31,7 +31,7 @@ function fmtDisplay(d) {
 }
 
 export function useDateRange() {
-  const [preset, setPreset] = useState('week')
+  const [preset, setPreset] = useState('today')
   const [customStart, setCustomStart] = useState(toInput(daysAgo(30)))
   const [customEnd, setCustomEnd] = useState(toInput(new Date()))
 
