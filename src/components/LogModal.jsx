@@ -51,6 +51,10 @@ export default function LogModal({ isOpen, onClose, onSubmit, onNavigateToPost, 
           if (youtubeBeMatch) videoId = youtubeBeMatch[1]
           if (videoId) return `https://www.youtube.com/watch?v=${videoId}`
         }
+        if (parsed.hostname.includes('tiktok.com')) {
+          parsed.search = ''
+          return parsed.toString().replace(/\/$/, '')
+        }
         const v = parsed.searchParams.get('v')
         parsed.search = ''
         if (v) parsed.searchParams.set('v', v)

@@ -38,6 +38,11 @@ function normalizeUrl(url) {
       if (youtubeBeMatch) videoId = youtubeBeMatch[1]
       if (videoId) return `https://www.youtube.com/watch?v=${videoId}`
     }
+    // Normalize TikTok: strip all tracking params
+    if (u.hostname.includes('tiktok.com')) {
+      u.search = ''
+      return u.toString().replace(/\/$/, '')
+    }
     u.search = ''
     return u.toString().replace(/\/$/, '')
   } catch { return (url || '').toLowerCase().trim() }
