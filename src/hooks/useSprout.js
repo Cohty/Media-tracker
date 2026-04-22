@@ -131,6 +131,41 @@ export function useSprout() {
     }
 
     onProgress?.(`Matched ${results.length} of ${posts.length} posts`)
+
+    // Step 2: For all X/Twitter posts, also fetch X API view counts
+    const xPosts = posts.filter(p =>
+      p.platform === 'X' || p.platform === 'Twitter' ||
+      (p.url || '').includes('twitter.com') || (p.url || '').includes('x.com')
+    )
+
+    if (xPosts.length > 0) {
+      onProgress?.(`Fetching X API view counts for ${xPosts.length} X posts…`)
+      let xCount = 0
+      for (const post of xPosts) {
+        try {
+          const res = await fetch('/api/x-stats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({ url: post.syncUrl?.trim() || post.url || '' }),
+          })
+          if (res.ok) {
+            const xData = await res.json()
+            if (xData.viewCount || xData.impressions) {
+              const existing = results.find(r => r.id === post.id)
+              if (existing) {
+                if (xData.viewCount) existing.videoViews = xData.viewCount
+                if (xData.impressions) existing.xImpressions = xData.impressions
+              } else {
+                results.push({ id: post.id, stats: null, post, videoViews: xData.viewCount || null, xImpressions: xData.impressions || null })
+              }
+              xCount++
+            }
+          }
+        } catch { /* skip failed X API calls silently */ }
+      }
+      onProgress?.(`Fetched X view counts for ${xCount} posts`)
+    }
+
     return results
   }
 

@@ -21,6 +21,8 @@ export async function onRequestGet({ env }) {
       engagement: row.stats_engagement || '',
       impressions: row.stats_impressions || '',
     },
+    videoViews: row.stats_video_views || '',
+    xImpressions: row.stats_x_impressions || '',
     createdBy: row.created_by,
     syncUrl: row.sync_url || '',
   }))

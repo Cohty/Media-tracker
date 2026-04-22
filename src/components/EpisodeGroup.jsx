@@ -228,9 +228,15 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
 
           {/* Total metrics across all posts in the group */}
           {(() => {
-            const totalViews = posts.reduce((s, p) => s + (Number(p.stats?.views) || 0), 0)
+            const totalViews = posts.reduce((s, p) => {
+              const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+              return s + ((isX && p.videoViews && Number(p.videoViews) > 0) ? Number(p.videoViews) : Number(p.stats?.views) || 0)
+            }, 0)
             const totalEng   = posts.reduce((s, p) => s + (Number(p.stats?.engagement) || 0), 0)
-            const totalImp   = posts.reduce((s, p) => s + (Number(p.stats?.impressions) || 0), 0)
+            const totalImp   = posts.reduce((s, p) => {
+              const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+              return s + Math.max(isX ? Number(p.xImpressions) || 0 : 0, Number(p.stats?.impressions) || 0)
+            }, 0)
             const fmt = n => n >= 1000000 ? `${(n/1000000).toFixed(1)}M` : n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n)
             if (totalViews === 0 && totalEng === 0 && totalImp === 0) return null
             return (

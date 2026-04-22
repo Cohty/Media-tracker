@@ -25,12 +25,18 @@ export default function Topbar({ postCount, showCount, onLogClick, user, pending
       posts.forEach(p => { before[p.id] = { views: Number(p.stats?.views) || 0, engagement: Number(p.stats?.engagement) || 0, impressions: Number(p.stats?.impressions) || 0 } })
 
       const results = await syncPostStats(posts, msg => setSyncMsg(msg))
-      for (const { id, stats } of results) {
-        await fetch(`/api/posts/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-          body: JSON.stringify({ stats }),
-        })
+      for (const { id, stats, videoViews, xImpressions } of results) {
+        const body = {}
+        if (stats) body.stats = stats
+        if (videoViews) body.videoViews = videoViews
+        if (xImpressions) body.xImpressions = xImpressions
+        if (Object.keys(body).length > 0) {
+          await fetch(`/api/posts/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify(body),
+          })
+        }
       }
 
       // Detect significant changes (post that gained 1k+ views or 50+ engagement)

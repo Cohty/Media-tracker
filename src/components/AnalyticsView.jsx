@@ -172,7 +172,7 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
       ...postsToExport.map(p => [
         `"${(p.title||'').replace(/"/g,'""')}"`,
         `"${p.show||''}"`, p.platform||'', p.mediaType||'', p.episodeNumber||'', p.date||'',
-        p.stats?.views||'', p.stats?.engagement||'', p.stats?.impressions||'',
+        (() => { const isX = p.platform==='X'||(p.url||'').includes('twitter.com')||(p.url||'').includes('x.com'); return (isX && p.videoViews) ? p.videoViews : p.stats?.views||'' })(), p.stats?.engagement||'', p.stats?.impressions||'',
         `"${p.url||''}"`,
       ])
     ]
@@ -217,9 +217,15 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
         name: p.title?.length > 20 ? p.title.slice(0, 20) + '…' : (p.title || ''),
         title: p.title || '',
         ep: p.episodeNumber || '',
-        views: Number(p.stats?.views) || 0,
+        views: (() => {
+          const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+          return Math.max(isX ? Number(p.videoViews) || 0 : 0, Number(p.stats?.views) || 0)
+        })(),
         engagement: Number(p.stats?.engagement) || 0,
-        impressions: Number(p.stats?.impressions) || 0,
+        impressions: (() => {
+          const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+          return Math.max(isX ? Number(p.xImpressions) || 0 : 0, Number(p.stats?.impressions) || 0)
+        })(),
       })),
     [filteredPosts]
   )

@@ -11,7 +11,7 @@ export async function onRequestPatch({ params, request, env }) {
     // Build dynamic SET clause from provided fields
     const fieldMap = {
       url: 'url', title: 'title', show: 'show_name', platform: 'platform',
-      mediaType: 'media_type', episodeNumber: 'episode_number', clipIndex: 'clip_index', syncUrl: 'sync_url', date: 'post_date',
+      mediaType: 'media_type', episodeNumber: 'episode_number', clipIndex: 'clip_index', syncUrl: 'sync_url', date: 'post_date', videoViews: 'stats_video_views', xImpressions: 'stats_x_impressions',
       'stats.views': 'stats_views', 'stats.engagement': 'stats_engagement',
       'stats.impressions': 'stats_impressions',
     }
@@ -26,7 +26,7 @@ export async function onRequestPatch({ params, request, env }) {
       if (body.stats.impressions !== undefined) { sets.push('stats_impressions = ?'); vals.push(body.stats.impressions) }
     }
 
-    const directFields = ['url', 'title', 'show', 'platform', 'mediaType', 'episodeNumber', 'clipIndex', 'syncUrl', 'date']
+    const directFields = ['url', 'title', 'show', 'platform', 'mediaType', 'episodeNumber', 'clipIndex', 'syncUrl', 'date', 'videoViews', 'xImpressions']
     directFields.forEach(f => {
       if (body[f] !== undefined) {
         sets.push(`${fieldMap[f]} = ?`)

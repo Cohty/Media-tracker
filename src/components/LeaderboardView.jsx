@@ -65,10 +65,19 @@ export default function LeaderboardView({ posts }) {
         if ((p.ts || 0) < cutoff) return false
         if (filterShow !== 'all' && p.show !== filterShow) return false
         if (filterType !== 'all' && p.mediaType !== filterType) return false
-        const val = Number(p.stats?.[metric]) || 0
+        const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+        const val = (metric === 'views' && isX && p.videoViews && Number(p.videoViews) > 0)
+          ? Number(p.videoViews)
+          : Number(p.stats?.[metric]) || 0
         return val > 0
       })
-      .map(p => ({ ...p, metricVal: Number(p.stats?.[metric]) || 0 }))
+      .map(p => {
+        const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+        let metricVal = Number(p.stats?.[metric]) || 0
+        if (isX && metric === 'views') metricVal = Math.max(Number(p.videoViews) || 0, metricVal)
+        if (isX && metric === 'impressions') metricVal = Math.max(Number(p.xImpressions) || 0, metricVal)
+        return { ...p, metricVal }
+      })
       .sort((a, b) => b.metricVal - a.metricVal)
       .slice(0, limit)
   }, [posts, range, metric, filterShow, filterType, limit, activeRange])
@@ -82,9 +91,15 @@ export default function LeaderboardView({ posts }) {
 
   // Totals for filtered set
   const totals = useMemo(() => {
-    const views = filtered.reduce((s, p) => s + (Number(p.stats?.views) || 0), 0)
+    const views = filtered.reduce((s, p) => {
+      const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+      return s + Math.max(isX ? Number(p.videoViews) || 0 : 0, Number(p.stats?.views) || 0)
+    }, 0)
     const engagement = filtered.reduce((s, p) => s + (Number(p.stats?.engagement) || 0), 0)
-    const impressions = filtered.reduce((s, p) => s + (Number(p.stats?.impressions) || 0), 0)
+    const impressions = filtered.reduce((s, p) => {
+      const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+      return s + Math.max(isX ? Number(p.xImpressions) || 0 : 0, Number(p.stats?.impressions) || 0)
+    }, 0)
     return { views, engagement, impressions }
   }, [filtered])
 
@@ -259,7 +274,12 @@ export default function LeaderboardView({ posts }) {
                         {post.show}
                       </span>
                     </div>
-                    <div style={{ fontFamily: 'VT323', fontSize: 18, color: '#00e5ff', lineHeight: 1 }}>{fmt(Number(post.stats?.views)||0)}</div>
+                    <div style={{ fontFamily: 'VT323', fontSize: 18, color: '#00e5ff', lineHeight: 1 }}>
+                      {(() => {
+                        const isX = post.platform === 'X' || post.platform === 'Twitter' || (post.url||'').includes('twitter.com') || (post.url||'').includes('x.com')
+                        return fmt((isX && post.videoViews && Number(post.videoViews) > 0) ? Number(post.videoViews) : Number(post.stats?.views) || 0)
+                      })()}
+                    </div>
                     <div style={{ fontFamily: 'VT323', fontSize: 18, color: '#ff2d78', lineHeight: 1 }}>{fmt(Number(post.stats?.engagement)||0)}</div>
                     <div style={{ fontFamily: 'VT323', fontSize: 18, color: '#b44eff', lineHeight: 1 }}>{fmt(Number(post.stats?.impressions)||0)}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

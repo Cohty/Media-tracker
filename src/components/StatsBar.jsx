@@ -9,9 +9,17 @@ export default function StatsBar({ posts, allPosts, rangeLabel }) {
 
     displayPosts.forEach(p => {
       platformCount[p.platform] = (platformCount[p.platform] || 0) + 1
-      totalViews       += Number(p.stats?.views)       || 0
-      totalEngagement  += Number(p.stats?.engagement)  || 0
-      totalImpressions += Number(p.stats?.impressions) || 0
+      const isX = p.platform === 'X' || p.platform === 'Twitter' ||
+        (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+      // Views: higher of X API vs Sprout
+      const xV = isX ? Number(p.videoViews) || 0 : 0
+      const sV = Number(p.stats?.views) || 0
+      totalViews += Math.max(xV, sV)
+      totalEngagement += Number(p.stats?.engagement) || 0
+      // Impressions: higher of X API vs Sprout
+      const xI = isX ? Number(p.xImpressions) || 0 : 0
+      const sI = Number(p.stats?.impressions) || 0
+      totalImpressions += Math.max(xI, sI)
     })
 
     const topPlatform = Object.entries(platformCount).sort((a,b) => b[1]-a[1])[0]
