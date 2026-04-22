@@ -27,6 +27,14 @@ function exportCSV(posts) {
   URL.revokeObjectURL(url)
 }
 
+function fmt(n) {
+  const v = Number(n)
+  if (!v || isNaN(v)) return '—'
+  if (v >= 1000000) return `${(v/1000000).toFixed(1)}M`
+  if (v >= 1000) return `${(v/1000).toFixed(1)}k`
+  return String(v)
+}
+
 export default function BatchBar({ selectedIds, posts, onDelete, onRetag, onClear }) {
   const [retagShow, setRetagShow] = useState('')
   const [retagType, setRetagType] = useState('')
@@ -35,7 +43,19 @@ export default function BatchBar({ selectedIds, posts, onDelete, onRetag, onClea
 
   if (selectedIds.size === 0) return null
 
+  // Use ALL posts (not date-filtered) so metrics are accurate for cross-range selections
   const selectedPosts = posts.filter(p => selectedIds.has(p.id))
+
+  // Compute combined metrics for selected posts
+  const totalViews = selectedPosts.reduce((s, p) => {
+    const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+    return s + Math.max(isX ? Number(p.videoViews)||0 : 0, Number(p.stats?.views)||0)
+  }, 0)
+  const totalEng = selectedPosts.reduce((s, p) => s + (Number(p.stats?.engagement)||0), 0)
+  const totalImp = selectedPosts.reduce((s, p) => {
+    const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+    return s + Math.max(isX ? Number(p.xImpressions)||0 : 0, Number(p.stats?.impressions)||0)
+  }, 0)
 
   async function handleRetag() {
     if (!retagShow && !retagType && !retagEpisode) return
@@ -61,6 +81,21 @@ export default function BatchBar({ selectedIds, posts, onDelete, onRetag, onClea
       <div className="batch-bar-left">
         <span className="batch-count">{selectedIds.size} selected</span>
         <button className="batch-clear" onClick={onClear}>✕ Clear</button>
+        {totalViews > 0 && (
+          <span style={{ fontFamily:'DM Mono', fontSize:9, color:'#00e5ff', marginLeft:8 }}>
+            👁 {fmt(totalViews)}
+          </span>
+        )}
+        {totalEng > 0 && (
+          <span style={{ fontFamily:'DM Mono', fontSize:9, color:'#ff2d78', marginLeft:6 }}>
+            💬 {fmt(totalEng)}
+          </span>
+        )}
+        {totalImp > 0 && (
+          <span style={{ fontFamily:'DM Mono', fontSize:9, color:'#b44eff', marginLeft:6 }}>
+            📢 {fmt(totalImp)}
+          </span>
+        )}
       </div>
 
       <div className="batch-bar-right">

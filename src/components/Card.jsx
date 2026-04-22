@@ -41,11 +41,76 @@ function StatBadge({ icon, value, color }) {
   if (!value) return null
   const num = Number(value)
   if (isNaN(num) || num === 0) return null
-  const display = num >= 1000 ? `${(num/1000).toFixed(1)}k` : num.toLocaleString()
+  const display = num >= 1000000 ? `${(num/1000000).toFixed(1)}M` : num >= 1000 ? `${(num/1000).toFixed(1)}k` : num.toLocaleString()
   return (
     <span className="card-stat-badge" style={{ color, borderColor: color+'40', background: color+'10' }}>
       {icon} {display}
     </span>
+  )
+}
+
+function StatWithTooltip({ icon, mainVal, tooltipLabel, tooltipVal, color }) {
+  const [hovered, setHovered] = useState(false)
+  const num = Number(mainVal)
+  if (!mainVal || isNaN(num) || num === 0) return null
+  const fmt = n => { const v = Number(n); return v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v) }
+  const showTip = tooltipVal && Number(tooltipVal) > 0 && tooltipLabel
+  return (
+    <span
+      className="card-stat-badge"
+      style={{ color, borderColor: color+'40', background: color+'10', position:'relative', cursor: showTip ? 'help' : 'default' }}
+      onMouseEnter={() => showTip && setHovered(true)}
+      onMouseLeave={() => setHovered(false)}>
+      {icon} {fmt(mainVal)}
+      {showTip && <span style={{ fontSize:7, marginLeft:2, opacity:0.5 }}>ⓘ</span>}
+      {hovered && showTip && (
+        <span style={{
+          position:'absolute', bottom:'calc(100% + 6px)', left:'50%', transform:'translateX(-50%)',
+          background:'#1a0a2e', border:'1px solid rgba(180,78,255,0.4)', borderRadius:6,
+          padding:'5px 9px', whiteSpace:'nowrap', zIndex:999,
+          fontFamily:'DM Mono', fontSize:9, color:'var(--text2)',
+          boxShadow:'0 4px 16px rgba(0,0,0,0.4)',
+          pointerEvents:'none',
+        }}>
+          {tooltipLabel}: {fmt(tooltipVal)}
+        </span>
+      )}
+    </span>
+  )
+}
+
+function CardStats({ post }) {
+  const isX = post.platform === 'X' || post.platform === 'Twitter' ||
+    (post.url||'').includes('twitter.com') || (post.url||'').includes('x.com')
+
+  const xViews = isX ? Number(post.videoViews) || 0 : 0
+  const sViews = Number(post.stats?.views) || 0
+  const showViews = Math.max(xViews, sViews)
+  const viewTooltipLabel = xViews > sViews ? 'Sprout' : xViews > 0 ? 'X API' : null
+  const viewTooltipVal = xViews > sViews ? sViews : xViews > 0 && xViews < sViews ? xViews : null
+
+  const xImp = isX ? Number(post.xImpressions) || 0 : 0
+  const sImp = Number(post.stats?.impressions) || 0
+  const showImp = Math.max(xImp, sImp)
+  const impTooltipLabel = xImp > sImp ? 'Sprout' : xImp > 0 ? 'X API' : null
+  const impTooltipVal = xImp > sImp ? sImp : xImp > 0 && xImp < sImp ? xImp : null
+
+  return (
+    <div className="card-stats-row">
+      {isX && showViews > 0 ? (
+        <StatWithTooltip icon="👁" mainVal={showViews} color="#00e5ff"
+          tooltipLabel={viewTooltipLabel} tooltipVal={viewTooltipVal} />
+      ) : (
+        <StatBadge icon="👁" value={post.stats?.views} color="#00e5ff" />
+      )}
+      <StatBadge icon="💬" value={post.stats?.engagement} color="#ff2d78" />
+      {isX && showImp > 0 ? (
+        <StatWithTooltip icon="📢" mainVal={showImp} color="#b44eff"
+          tooltipLabel={impTooltipLabel} tooltipVal={impTooltipVal} />
+      ) : (
+        <StatBadge icon="📢" value={post.stats?.impressions} color="#b44eff" />
+      )}
+    </div>
   )
 }
 
@@ -61,14 +126,6 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
   const hasSproutStats = post.stats && (post.stats.views || post.stats.impressions || post.stats.engagement)
   const hasXStats = (post.videoViews && Number(post.videoViews) > 0) || (post.xImpressions && Number(post.xImpressions) > 0)
   const hasStats = hasSproutStats || hasXStats
-
-  function fmtNum(n) {
-    const num = Number(n)
-    if (!num || isNaN(num)) return null
-    if (num >= 1000000) return `${(num/1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num/1000).toFixed(1)}k`
-    return String(num)
-  }
 
   async function handleSingleSync() {
     setSyncing(true)
@@ -189,55 +246,9 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
 
       <div className="card-title">{post.title}</div>
 
-      {hasStats && (() => {
-        const isX = post.platform === 'X' || post.platform === 'Twitter' ||
-          (post.url||'').includes('twitter.com') || (post.url||'').includes('x.com')
-
-        // Views: higher of X API vs Sprout
-        const xViews = Number(post.videoViews) || 0
-        const sViews = Number(post.stats?.views) || 0
-        const showViews = Math.max(xViews, sViews)
-        const tooltipViews = xViews > sViews
-          ? (sViews > 0 ? `Sprout: ${fmtNum(sViews)}` : null)
-          : (xViews > 0 ? `X API: ${fmtNum(xViews)}` : null)
-
-        // Impressions: higher of X API vs Sprout
-        const xImp = Number(post.xImpressions) || 0
-        const sImp = Number(post.stats?.impressions) || 0
-        const showImp = Math.max(xImp, sImp)
-        const tooltipImp = xImp > sImp
-          ? (sImp > 0 ? `Sprout: ${fmtNum(sImp)}` : null)
-          : (xImp > 0 ? `X API: ${fmtNum(xImp)}` : null)
-
-        return (
-          <div className="card-stats-row">
-            {/* Views */}
-            {(isX && showViews > 0) ? (
-              <span className="card-stat-badge"
-                style={{ color:'#00e5ff', borderColor:'#00e5ff40', background:'#00e5ff10', cursor: tooltipViews ? 'help' : 'default' }}
-                title={tooltipViews || undefined}>
-                👁 {fmtNum(showViews)}
-                {tooltipViews && <span style={{ fontSize:7, marginLeft:3, opacity:0.6 }}>ⓘ</span>}
-              </span>
-            ) : (
-              <StatBadge icon="👁" value={post.stats?.views} color="#00e5ff" />
-            )}
-            {/* Engagement — Sprout only */}
-            <StatBadge icon="💬" value={post.stats?.engagement} color="#ff2d78" />
-            {/* Impressions: higher of X API vs Sprout */}
-            {(isX && showImp > 0) ? (
-              <span className="card-stat-badge"
-                style={{ color:'#b44eff', borderColor:'#b44eff40', background:'#b44eff10', cursor: tooltipImp ? 'help' : 'default' }}
-                title={tooltipImp || undefined}>
-                📢 {fmtNum(showImp)}
-                {tooltipImp && <span style={{ fontSize:7, marginLeft:3, opacity:0.6 }}>ⓘ</span>}
-              </span>
-            ) : (
-              <StatBadge icon="📢" value={post.stats?.impressions} color="#b44eff" />
-            )}
-          </div>
-        )
-      })()}
+      {hasStats && (
+        <CardStats post={post} />
+      )}
 
       <div className="card-footer">
         <span className="card-date">{post.date}</span>
@@ -265,8 +276,8 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
         <div className="del-confirm">
           <span>Remove this post?</span>
           <div className="del-confirm-btns">
-            <button className="del-no" onClick={() => setConfirming(false)}>No</button>
-            <button className="del-yes" onClick={() => onDelete(post.id)}>Yes</button>
+            <button className="del-no" onClick={e => { e.stopPropagation(); setConfirming(false) }}>No</button>
+            <button className="del-yes" onClick={e => { e.stopPropagation(); onDelete(post.id) }}>Yes</button>
           </div>
         </div>
       )}
