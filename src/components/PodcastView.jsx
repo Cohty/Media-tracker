@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { getAuthHeaders } from '../hooks/useUser'
 
 // Only track these shows
 const TRACKED_SHOWS = ['The Crypto Beat', 'Layer One', 'The Big Brain Podcast']

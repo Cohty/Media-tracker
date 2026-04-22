@@ -113,6 +113,7 @@ export default function CalendarView({ posts }) {
   const [rangeEnd, setRangeEnd] = useState(null)
   const [sortBy, setSortBy] = useState('date')
   const [filterType, setFilterType] = useState('all')
+  const [selectedIds, setSelectedIds] = useState(new Set())
 
   const postsByDate = useMemo(() => {
     const map = {}
@@ -182,6 +183,19 @@ export default function CalendarView({ posts }) {
     })
     return { views, engagement, impressions }
   }, [filteredPosts])
+
+
+  const calSelectedPosts = filteredPosts.filter(p => selectedIds.has(p.id))
+  const hasCalSelection = selectedIds.size > 0
+  const selCalViews = calSelectedPosts.reduce((s, p) => {
+    const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+    return s + Math.max(isX ? Number(p.videoViews)||0 : 0, Number(p.stats?.views)||0)
+  }, 0)
+  const selCalEng = calSelectedPosts.reduce((s, p) => s + (Number(p.stats?.engagement)||0), 0)
+  const selCalImp = calSelectedPosts.reduce((s, p) => {
+    const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+    return s + Math.max(isX ? Number(p.xImpressions)||0 : 0, Number(p.stats?.impressions)||0)
+  }, 0)
 
   const todayKey = dateKey(Date.now())
   const showColors = Object.fromEntries(SHOWS.map(s => [s.name, s.hex]))
@@ -276,12 +290,25 @@ export default function CalendarView({ posts }) {
                     ))}
                   </div>
 
-                  {/* Metric totals with hover full number */}
+                  {/* Metric totals + selected metrics */}
                   {(metricTotals.views > 0 || metricTotals.engagement > 0 || metricTotals.impressions > 0) && (
-                    <div style={{ display:'flex', gap:20, padding:'8px 0 4px', borderTop:'1px solid var(--border)', marginTop:4, flexWrap:'wrap' }}>
+                    <div style={{ display:'flex', gap:20, padding:'8px 0 4px', borderTop:'1px solid var(--border)', marginTop:4, flexWrap:'wrap', alignItems:'center' }}>
                       <MetricTotal label="Total Views"    value={metricTotals.views}       color="#00e5ff" />
                       <MetricTotal label="Engagement"     value={metricTotals.engagement}  color="#ff2d78" />
                       <MetricTotal label="Impressions"    value={metricTotals.impressions} color="#b44eff" />
+                      {hasCalSelection && (
+                        <>
+                          <div style={{ width:1, height:28, background:'var(--border)', margin:'0 4px' }} />
+                          <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--purple)', fontWeight:700 }}>{selectedIds.size} SEL</span>
+                          {selCalViews > 0 && <MetricTotal label="Views"       value={selCalViews} color="#00e5ff" />}
+                          {selCalEng > 0   && <MetricTotal label="Engagement"  value={selCalEng}   color="#ff2d78" />}
+                          {selCalImp > 0   && <MetricTotal label="Impressions" value={selCalImp}   color="#b44eff" />}
+                          <button onClick={() => setSelectedIds(new Set())}
+                            style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)',
+                              background:'none', border:'1px solid var(--border)', borderRadius:4,
+                              padding:'2px 6px', cursor:'pointer' }}>✕</button>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -311,30 +338,42 @@ export default function CalendarView({ posts }) {
                     <div className="cal-empty">No posts in this range</div>
                   ) : (
                     <div className="cal-post-list">
-                      {filteredPosts.map(post => (
-                        <div key={post.id} className="cal-post-row">
-                          <div className="cal-post-dot" style={{ background: showColors[post.show] || '#b44eff' }} />
-                          <div className="cal-post-info">
-                            <div className="cal-post-title">{post.title}</div>
-                            <div className="cal-post-meta">
-                              <span>{post.show} · {post.platform} · {post.date}</span>
-                              {Number(post.stats?.views) > 0 && <span style={{ color:'#00e5ff' }}>👁 {fmt(Number(post.stats.views))}</span>}
-                              {Number(post.stats?.engagement) > 0 && <span style={{ color:'#ff2d78' }}>💬 {fmt(Number(post.stats.engagement))}</span>}
-                              {Number(post.stats?.impressions) > 0 && <span style={{ color:'#b44eff' }}>📢 {fmt(Number(post.stats.impressions))}</span>}
-                              {!Number(post.stats?.views) && !Number(post.stats?.impressions) && !Number(post.stats?.engagement) && (
-                                <span style={{ color:'rgba(74,65,104,0.6)', fontSize:8, fontStyle:'italic' }}>no stats · sync from Sprout</span>
-                              )}
+                      {filteredPosts.map(post => {
+                        const isX = post.platform === 'X' || post.platform === 'Twitter' || (post.url||'').includes('twitter.com') || (post.url||'').includes('x.com')
+                        const showV = Math.max(isX ? Number(post.videoViews)||0 : 0, Number(post.stats?.views)||0)
+                        const showI = Math.max(isX ? Number(post.xImpressions)||0 : 0, Number(post.stats?.impressions)||0)
+                        const showE = Number(post.stats?.engagement)||0
+                        return (
+                          <div key={post.id} className="cal-post-row"
+                            style={{ background: selectedIds.has(post.id) ? 'rgba(180,78,255,0.06)' : undefined, cursor:'pointer' }}
+                            onClick={() => toggleCalSelect(post.id)}>
+                            <input type="checkbox" checked={selectedIds.has(post.id)}
+                              onChange={() => toggleCalSelect(post.id)}
+                              onClick={e => e.stopPropagation()}
+                              style={{ cursor:'pointer', flexShrink:0 }} />
+                            <div className="cal-post-dot" style={{ background: showColors[post.show] || '#b44eff' }} />
+                            <div className="cal-post-info">
+                              <div className="cal-post-title">{post.title}</div>
+                              <div className="cal-post-meta">
+                                <span>{post.show} · {post.platform} · {post.date}</span>
+                                {showV > 0 && <span style={{ color:'#00e5ff' }}>👁 {fmt(showV)}</span>}
+                                {showE > 0 && <span style={{ color:'#ff2d78' }}>💬 {fmt(showE)}</span>}
+                                {showI > 0 && <span style={{ color:'#b44eff' }}>📢 {fmt(showI)}</span>}
+                                {!showV && !showI && !showE && (
+                                  <span style={{ color:'rgba(74,65,104,0.6)', fontSize:8, fontStyle:'italic' }}>no stats · sync from Sprout</span>
+                                )}
+                              </div>
                             </div>
+                            {post.mediaType && (
+                              <span className="cal-post-type" style={{ color: TYPE_COLORS[post.mediaType] || 'var(--text3)',
+                                borderColor: (TYPE_COLORS[post.mediaType] || '#b44eff') + '44',
+                                background: (TYPE_COLORS[post.mediaType] || '#b44eff') + '11' }}>
+                                {post.mediaType}
+                              </span>
+                            )}
                           </div>
-                          {post.mediaType && (
-                            <span className="cal-post-type" style={{ color: TYPE_COLORS[post.mediaType] || 'var(--text3)',
-                              borderColor: (TYPE_COLORS[post.mediaType] || '#b44eff') + '44',
-                              background: (TYPE_COLORS[post.mediaType] || '#b44eff') + '11' }}>
-                              {post.mediaType}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </>

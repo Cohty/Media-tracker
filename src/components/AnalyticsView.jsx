@@ -159,8 +159,18 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
   const [lastSynced, setLastSynced] = useState(null)
   const [importOpen, setImportOpen] = useState(false)
   const [summaryLogId, setSummaryLogId] = useState(null)
+  const [selectedIds, setSelectedIds] = useState(new Set())
 
   const { status: sproutStatus, syncPostStats } = useSprout()
+
+  function toggleSelect(id) {
+    setSelectedIds(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+  function clearSelection() { setSelectedIds(new Set()) }
 
   function toggleMetric(id) {
     setActiveMetrics(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id])
@@ -209,8 +219,11 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
     return result
   }, [posts, filterShow, filterType, sortBy])
 
-  const chartData = useMemo(() =>
-    filteredPosts
+  const chartData = useMemo(() => {
+    const source = selectedIds.size > 0
+      ? filteredPosts.filter(p => selectedIds.has(p.id))
+      : filteredPosts
+    return source
       .filter(p => p.stats && (p.stats.views || p.stats.engagement || p.stats.impressions))
       .slice(0, 20)
       .map(p => ({
@@ -226,9 +239,8 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
           const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
           return Math.max(isX ? Number(p.xImpressions) || 0 : 0, Number(p.stats?.impressions) || 0)
         })(),
-      })),
-    [filteredPosts]
-  )
+      }))
+  }, [filteredPosts, selectedIds])
 
   async function handleSproutSync() {
     setSyncStatus('syncing'); setSyncMsg('Connecting to Sprout Social…')
@@ -250,6 +262,29 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
     onUpdatePost(postId, { stats: { ...(post.stats || {}), [field]: value } })
   }
 
+  const selectedPosts = filteredPosts.filter(p => selectedIds.has(p.id))
+  const hasSelection = selectedIds.size > 0
+
+  function getViews(p) {
+    const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+    return Math.max(isX ? Number(p.videoViews)||0 : 0, Number(p.stats?.views)||0)
+  }
+  function getImp(p) {
+    const isX = p.platform === 'X' || p.platform === 'Twitter' || (p.url||'').includes('twitter.com') || (p.url||'').includes('x.com')
+    return Math.max(isX ? Number(p.xImpressions)||0 : 0, Number(p.stats?.impressions)||0)
+  }
+  function fmtN(n) {
+    if (!n || n === 0) return '—'
+    if (n >= 1000000) return `${(n/1000000).toFixed(1)}M`
+    if (n >= 1000) return `${(n/1000).toFixed(1)}k`
+    return String(n)
+  }
+
+  const selViews = selectedPosts.reduce((s, p) => s + getViews(p), 0)
+  const selEng   = selectedPosts.reduce((s, p) => s + (Number(p.stats?.engagement)||0), 0)
+  const selImp   = selectedPosts.reduce((s, p) => s + getImp(p), 0)
+
+  // Chart shows selected posts if any are selected, otherwise filtered posts
   const sproutReady = sproutStatus === 'ready'
 
   return (
@@ -348,10 +383,35 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
         </div>
       </div>
 
+      {/* ── BATCH METRICS BAR ── */}
+      {hasSelection && (
+        <div style={{ display:'flex', alignItems:'center', gap:16, padding:'10px 16px',
+          background:'rgba(180,78,255,0.06)', border:'1px solid rgba(180,78,255,0.25)',
+          borderRadius:'var(--radius)', marginBottom:0 }}>
+          <span style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--purple)', fontWeight:700, letterSpacing:'0.5px' }}>
+            {selectedIds.size} SELECTED
+          </span>
+          <div style={{ display:'flex', gap:16, alignItems:'center' }}>
+            {selViews > 0 && <span style={{ fontFamily:'VT323', fontSize:22, color:'#00e5ff', textShadow:'0 0 8px #00e5ff', lineHeight:1 }}>👁 {fmtN(selViews)}</span>}
+            {selEng > 0   && <span style={{ fontFamily:'VT323', fontSize:22, color:'#ff2d78', textShadow:'0 0 8px #ff2d78', lineHeight:1 }}>💬 {fmtN(selEng)}</span>}
+            {selImp > 0   && <span style={{ fontFamily:'VT323', fontSize:22, color:'#b44eff', textShadow:'0 0 8px #b44eff', lineHeight:1 }}>📢 {fmtN(selImp)}</span>}
+          </div>
+          <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)' }}>↓ chart shows selected posts</span>
+          <button onClick={clearSelection}
+            style={{ marginLeft:'auto', fontFamily:'DM Mono', fontSize:9, color:'var(--text3)',
+              background:'none', border:'1px solid var(--border)', borderRadius:4,
+              padding:'3px 8px', cursor:'pointer' }}>
+            ✕ Clear
+          </button>
+        </div>
+      )}
+
       {/* ── CHART ── */}
       <div className="win95-window">
         <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #1a0040, #4a0090)' }}>
-          <span className="win95-title">📈 PERFORMANCE CHART — hover bars for details</span>
+          <span className="win95-title">
+            📈 {hasSelection ? `PERFORMANCE CHART — ${selectedIds.size} SELECTED POSTS` : 'PERFORMANCE CHART — hover bars for details'}
+          </span>
         </div>
         <div style={{ padding: '12px 16px' }}>
           {chartData.length === 0 ? (
@@ -386,14 +446,26 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
           </div>
         </div>
         <div className="analytics-table-wrap">
-          <div className="analytics-table-header">
+          <div className="analytics-table-header" style={{ gridTemplateColumns:'28px 2fr 1fr 1fr 100px 100px 100px' }}>
+            <div><input type="checkbox"
+              checked={hasSelection && selectedIds.size === filteredPosts.length}
+              onChange={() => setSelectedIds(prev => prev.size === filteredPosts.length ? new Set() : new Set(filteredPosts.map(p => p.id)))}
+              style={{ cursor:'pointer' }} /></div>
             <div>TITLE</div><div>SHOW</div><div>TYPE</div>
             <div>VIEWS</div><div>ENGAGEMENT</div><div>IMPRESSIONS</div>
           </div>
           {filteredPosts.length === 0 ? (
             <div className="empty-analytics" style={{ padding: 24 }}>No posts match the current filters</div>
           ) : filteredPosts.map(post => (
-            <div key={post.id} className="analytics-row">
+            <div key={post.id} className="analytics-row"
+              style={{ gridTemplateColumns:'28px 2fr 1fr 1fr 100px 100px 100px',
+                background: selectedIds.has(post.id) ? 'rgba(180,78,255,0.06)' : undefined,
+                cursor:'pointer' }}
+              onClick={() => toggleSelect(post.id)}>
+              <div className="analytics-cell" onClick={e => e.stopPropagation()}>
+                <input type="checkbox" checked={selectedIds.has(post.id)}
+                  onChange={() => toggleSelect(post.id)} style={{ cursor:'pointer' }} />
+              </div>
               <div className="analytics-cell">
                 <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                   <div className="analytics-cell-text">{post.title}</div>
