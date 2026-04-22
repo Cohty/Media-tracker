@@ -115,6 +115,14 @@ export default function CalendarView({ posts }) {
   const [filterType, setFilterType] = useState('all')
   const [selectedIds, setSelectedIds] = useState(new Set())
 
+  function toggleCalSelect(id) {
+    setSelectedIds(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+
   const postsByDate = useMemo(() => {
     const map = {}
     posts.forEach(p => {

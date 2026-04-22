@@ -160,6 +160,7 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
   const [importOpen, setImportOpen] = useState(false)
   const [summaryLogId, setSummaryLogId] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
+  const [chartKey, setChartKey] = useState(0)
 
   const { status: sproutStatus, syncPostStats } = useSprout()
 
@@ -170,7 +171,7 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
       return n
     })
   }
-  function clearSelection() { setSelectedIds(new Set()) }
+  function clearSelection() { setSelectedIds(new Set()); setChartKey(k => k + 1) }
 
   function toggleMetric(id) {
     setActiveMetrics(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id])
@@ -422,6 +423,7 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <StatChart
+                key={chartKey}
                 data={chartData}
                 activeMetrics={activeMetrics}
                 chartType={chartType}

@@ -161,6 +161,21 @@ export default function PodcastView() {
   const [range, setRange] = useState('30')
   const [chartType, setChartType] = useState('line')
   const [sortEpisodes, setSortEpisodes] = useState('downloads')
+  const [selectedEpIds, setSelectedEpIds] = useState(new Set())
+  const [epChartKey, setEpChartKey] = useState(0)
+
+  function toggleEpSelect(id) {
+    setSelectedEpIds(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+
+  function clearEpSelection() {
+    setSelectedEpIds(new Set())
+    setEpChartKey(k => k + 1)
+  }
 
   useEffect(() => {
     transistorFetch('shows')
@@ -175,13 +190,13 @@ export default function PodcastView() {
         )
         setShows(filtered.length > 0 ? filtered : all)
         setStatus('ready')
-        const first = filtered[0] || all[0]
-        if (first) setSelectedShow(first)
+        setSelectedShow('all')  // default to all shows
       })
       .catch(err => setStatus(err.message.includes('503') ? 'no-key' : 'error'))
   }, [])
 
   useEffect(() => {
+    setSelectedEpIds(new Set())
     if (!selectedShow) return
     setLoadingAnalytics(true)
     const today = new Date()
@@ -241,6 +256,23 @@ export default function PodcastView() {
     return eps.sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
   }, [episodeAnalytics, sortEpisodes])
 
+  const selectedEps = episodeTotals.filter(ep => selectedEpIds.has(ep.id))
+  const hasEpSelection = selectedEpIds.size > 0
+
+  // Chart data: if episodes selected, show their daily downloads combined
+  const selectedTrendData = useMemo(() => {
+    if (!hasEpSelection) return trendData
+    // Sum daily downloads from selected episodes
+    const dateMap = {}
+    selectedEps.forEach(ep => {
+      ep.downloads.forEach(d => {
+        dateMap[d.date] = (dateMap[d.date] || 0) + d.downloads
+      })
+    })
+    return Object.entries(dateMap).sort().map(([date, downloads]) => ({ date, downloads }))
+  }, [selectedEps, hasEpSelection, trendData])
+
+  const selEpDownloads = selectedEps.reduce((s, ep) => s + ep.total, 0)
   const totalDownloads = trendData.reduce((s, d) => s + d.downloads, 0)
   const avgPerEp = episodeTotals.length > 0 ? Math.round(totalDownloads / episodeTotals.length) : 0
   const topEp = episodeTotals[0]
@@ -321,7 +353,7 @@ export default function PodcastView() {
           {/* Chart controls + chart */}
           <div className="win95-window">
             <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001840, #003080)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <span className="win95-title">📈 DOWNLOAD TREND — {showName}</span>
+              <span className="win95-title">📈 {hasEpSelection ? `DOWNLOAD TREND — ${selectedEpIds.size} EPISODES` : `DOWNLOAD TREND — ${showName}`}</span>
               <div style={{ display:'flex', gap:6, marginRight:8 }}>
                 {['7','14','30'].map(d => (
                   <button key={d}
@@ -343,10 +375,29 @@ export default function PodcastView() {
                 ? <div style={{ height:120, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'DM Mono', fontSize:10, color:'var(--text3)' }}>Loading…</div>
                 : trendData.length === 0
                   ? <div style={{ height:120, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'DM Mono', fontSize:10, color:'var(--text3)' }}>No data for this period</div>
-                  : <TrendChart data={trendData} chartType={chartType} />
+                  : <TrendChart key={epChartKey} data={selectedTrendData} chartType={chartType} />
               }
             </div>
           </div>
+
+          {/* Batch selection metrics bar */}
+          {hasEpSelection && (
+            <div style={{ display:'flex', alignItems:'center', gap:16, padding:'10px 16px',
+              background:'rgba(180,78,255,0.06)', border:'1px solid rgba(180,78,255,0.25)',
+              borderRadius:'var(--radius)' }}>
+              <span style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--purple)', fontWeight:700 }}>
+                {selectedEpIds.size} EPISODES SELECTED
+              </span>
+              <span style={{ fontFamily:'VT323', fontSize:24, color:'#b44eff', textShadow:'0 0 8px #b44eff', lineHeight:1 }}>
+                {selEpDownloads.toLocaleString()} downloads
+              </span>
+              <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)' }}>↑ chart shows selected</span>
+              <button onClick={clearEpSelection}
+                style={{ marginLeft:'auto', fontFamily:'DM Mono', fontSize:9, color:'var(--text3)',
+                  background:'none', border:'1px solid var(--border)', borderRadius:4,
+                  padding:'3px 8px', cursor:'pointer' }}>✕ Clear</button>
+            </div>
+          )}
 
           {/* Episode breakdown */}
           <div className="win95-window">
@@ -362,7 +413,11 @@ export default function PodcastView() {
               </div>
             </div>
             <div className="analytics-table-wrap">
-              <div className="analytics-table-header" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
+              <div className="analytics-table-header" style={{ gridTemplateColumns: '28px 2fr 1fr 1fr 1fr' }}>
+                <div><input type="checkbox"
+                  checked={hasEpSelection && selectedEpIds.size === episodeTotals.length}
+                  onChange={() => setSelectedEpIds(prev => prev.size === episodeTotals.length ? new Set() : new Set(episodeTotals.map(ep => ep.id)))}
+                  style={{ cursor:'pointer' }} /></div>
                 <div>EPISODE</div>
                 <div>SHOW</div>
                 <div>DOWNLOADS</div>
@@ -373,7 +428,16 @@ export default function PodcastView() {
               ) : episodeTotals.length === 0 ? (
                 <div className="empty-analytics" style={{ padding:24 }}>No episode activity in this period</div>
               ) : episodeTotals.map(ep => (
-                <div key={ep.id} className="analytics-row" style={{ gridTemplateColumns:'2fr 1fr 1fr 1fr' }}>
+                <div key={ep.id} className="analytics-row"
+                  style={{ gridTemplateColumns:'28px 2fr 1fr 1fr 1fr',
+                    background: selectedEpIds.has(ep.id) ? 'rgba(180,78,255,0.07)' : undefined,
+                    cursor: 'pointer' }}
+                  onClick={() => toggleEpSelect(ep.id)}>
+                  <div className="analytics-cell" onClick={e => e.stopPropagation()}>
+                    <input type="checkbox" checked={selectedEpIds.has(ep.id)}
+                      onChange={() => toggleEpSelect(ep.id)}
+                      style={{ cursor:'pointer' }} />
+                  </div>
                   <div className="analytics-cell">
                     <div className="analytics-cell-text">{ep.title}</div>
                   </div>
