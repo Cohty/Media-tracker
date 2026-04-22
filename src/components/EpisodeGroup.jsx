@@ -110,26 +110,23 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
       </div>
       <div className="card-title" style={{ marginBottom: 6 }}>{post.title}</div>
 
-      {/* Stats badges */}
-      {(Number(post.stats?.views) > 0 || Number(post.stats?.engagement) > 0 || Number(post.stats?.impressions) > 0) && (
-        <div className="card-stats-row" style={{ marginBottom: 6 }}>
-          {Number(post.stats?.views) > 0 && (
-            <span className="card-stat-badge" style={{ color:'#00e5ff', borderColor:'#00e5ff40', background:'#00e5ff10' }}>
-              👁 {Number(post.stats.views) >= 1000 ? `${(Number(post.stats.views)/1000).toFixed(1)}k` : post.stats.views}
-            </span>
-          )}
-          {Number(post.stats?.engagement) > 0 && (
-            <span className="card-stat-badge" style={{ color:'#ff2d78', borderColor:'#ff2d7840', background:'#ff2d7810' }}>
-              💬 {Number(post.stats.engagement) >= 1000 ? `${(Number(post.stats.engagement)/1000).toFixed(1)}k` : post.stats.engagement}
-            </span>
-          )}
-          {Number(post.stats?.impressions) > 0 && (
-            <span className="card-stat-badge" style={{ color:'#b44eff', borderColor:'#b44eff40', background:'#b44eff10' }}>
-              📢 {Number(post.stats.impressions) >= 1000 ? `${(Number(post.stats.impressions)/1000).toFixed(1)}k` : post.stats.impressions}
-            </span>
-          )}
-        </div>
-      )}
+      {/* Stats badges - uses higher of X API vs Sprout */}
+      {(() => {
+        const isX = post.platform === 'X' || post.platform === 'Twitter' ||
+          (post.url||'').includes('twitter.com') || (post.url||'').includes('x.com')
+        const showViews = Math.max(isX ? Number(post.videoViews)||0 : 0, Number(post.stats?.views)||0)
+        const showImp = Math.max(isX ? Number(post.xImpressions)||0 : 0, Number(post.stats?.impressions)||0)
+        const eng = Number(post.stats?.engagement)||0
+        const fmt = n => n >= 1000000 ? `${(n/1000000).toFixed(1)}M` : n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n)
+        if (!showViews && !eng && !showImp) return null
+        return (
+          <div className="card-stats-row" style={{ marginBottom: 6 }}>
+            {showViews > 0 && <span className="card-stat-badge" style={{ color:'#00e5ff', borderColor:'#00e5ff40', background:'#00e5ff10' }}>👁 {fmt(showViews)}</span>}
+            {eng > 0 && <span className="card-stat-badge" style={{ color:'#ff2d78', borderColor:'#ff2d7840', background:'#ff2d7810' }}>💬 {fmt(eng)}</span>}
+            {showImp > 0 && <span className="card-stat-badge" style={{ color:'#b44eff', borderColor:'#b44eff40', background:'#b44eff10' }}>📢 {fmt(showImp)}</span>}
+          </div>
+        )
+      })()}
 
       <div className="card-footer">
         <span className="card-date">{post.date}</span>
@@ -151,8 +148,8 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
         <div className="del-confirm">
           <span>Remove this post?</span>
           <div className="del-confirm-btns">
-            <button className="del-no" onClick={() => setConfirming(false)}>No</button>
-            <button className="del-yes" onClick={() => onDelete(post.id)}>Yes</button>
+            <button className="del-no" onClick={e => { e.stopPropagation(); setConfirming(false) }}>No</button>
+            <button className="del-yes" onClick={e => { e.stopPropagation(); onDelete(post.id) }}>Yes</button>
           </div>
         </div>
       )}
