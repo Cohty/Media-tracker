@@ -163,9 +163,11 @@ export default function App() {
       )}
 
       {activeView === 'board' && (
-        <Board posts={boardPosts} onDelete={handleDeletePost} onMove={setMovingPost}
-          highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect}
-          onUpdatePost={handleUpdatePost} hiddenCols={hiddenCols} onToggleHiddenCol={toggleHiddenCol} />
+        <div className="board-scroll-wrapper">
+          <Board posts={boardPosts} onDelete={handleDeletePost} onMove={setMovingPost}
+            highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect}
+            onUpdatePost={handleUpdatePost} hiddenCols={hiddenCols} onToggleHiddenCol={toggleHiddenCol} />
+        </div>
       )}
       {activeView === 'calendar'  && <CalendarView posts={posts} />}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={handleUpdatePost}

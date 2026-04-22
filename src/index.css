@@ -90,16 +90,24 @@ body {
   font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3); margin-top: 4px;
 }
 
+.board-scroll-wrapper {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(180,78,255,0.4) rgba(255,255,255,0.04);
+  /* Flip vertically so scrollbar appears on top */
+  transform: rotateX(180deg);
+}
+.board-scroll-wrapper::-webkit-scrollbar { height: 6px; }
+.board-scroll-wrapper::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
+.board-scroll-wrapper::-webkit-scrollbar-thumb { background: rgba(180,78,255,0.4); border-radius: 3px; }
+.board-scroll-wrapper::-webkit-scrollbar-thumb:hover { background: rgba(180,78,255,0.7); }
 .board {
   display: flex; gap: 12px; padding: 18px 24px 32px;
-  overflow-x: auto; align-items: flex-start;
-  scrollbar-width: thin; scrollbar-color: rgba(180,78,255,0.4) rgba(255,255,255,0.04);
+  align-items: flex-start;
   min-height: calc(100vh - 200px);
+  /* Flip back so content is right-side up */
+  transform: rotateX(180deg);
 }
-.board::-webkit-scrollbar { height: 6px; }
-.board::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-.board::-webkit-scrollbar-thumb { background: rgba(180,78,255,0.4); border-radius: 3px; }
-.board::-webkit-scrollbar-thumb:hover { background: rgba(180,78,255,0.7); }
 
 .column {
   flex: 0 0 255px; display: flex; flex-direction: column;
