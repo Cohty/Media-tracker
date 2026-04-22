@@ -140,7 +140,10 @@ export default function App() {
         onChangeView={setActiveView} activeView={activeView} />
 
       <StatsBar
-        posts={rangeFilteredPosts.filter(p => !hiddenCols.has(p.show) && !hiddenCols.has('Unassigned'))}
+        posts={rangeFilteredPosts.filter(p => {
+          const show = p.show || 'Unassigned'
+          return !hiddenCols.has(show)
+        })}
         allPosts={posts} rangeLabel={preset !== 'all' ? range.label : null} />
 
       <Nav activeView={activeView} onChangeView={setActiveView} />
