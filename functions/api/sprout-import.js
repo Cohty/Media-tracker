@@ -2,16 +2,44 @@ const CORS = { 'Content-Type': 'application/json' }
 const PROFILE_IDS = [7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559]
 
 const COLLECTION_TO_SHOW = {
+  // Shows
   'the crypto beat': 'The Crypto Beat', 'cryptobeat': 'The Crypto Beat',
   'the big brain podcast': 'The Big Brain Podcast', 'big brain podcast': 'The Big Brain Podcast', 'big brain': 'The Big Brain Podcast',
   'layer1': 'Layer One', 'layer 1': 'Layer One', 'layer one': 'Layer One',
   'the white papers': 'The White Papers', 'white papers': 'The White Papers',
   'standalones': 'Standalones', 'standalone': 'Standalones',
-  'editorials': 'Editorials', 'editorial': 'Editorials',
-  'partners': 'Partners & Campaigns', 'campaigns': 'Partners & Campaigns',
-  'partner campaign': 'Partners & Campaigns', 'sponsored': 'Partners & Campaigns',
-  'newsroom clips': 'Standalones', 'around the block': 'Standalones',
-  'the starting block': 'Standalones', 'cryptoiq': 'Standalones',
+  // Editorials — matches "Editorial (LinkedIn & Instagram)" and "Editorial Clips"
+  'editorial': 'Editorials',
+  // Partners & Campaigns
+  'polymarket': 'Partners & Campaigns', 'lmax': 'Partners & Campaigns',
+  'partner': 'Partners & Campaigns', 'campaign': 'Partners & Campaigns',
+  'sponsored': 'Partners & Campaigns',
+  // Around the Block → own column
+  'around the block': 'Around the Block', 'atb': 'Around the Block',
+  // The Starting Block → own column
+  'the starting block': 'The Starting Block', 'tsb': 'The Starting Block',
+  // CryptoIQ → Standalones
+  'cryptoiq': 'Standalones',
+  // Events → Conferences
+  'ethcc': 'Conferences', 'pbw': 'Conferences', 'conference': 'Conferences',
+}
+
+// Media type overrides from tags (these also override the show for full episode tags)
+const TAG_MEDIA_TYPE_OVERRIDES = {
+  'clip': 'Clip',
+  'full episode': 'Full Episode',
+  'podcast article': 'Podcast Article',
+  'editorial clips': 'Clip',
+}
+
+// Full episode tags that ALSO set the show
+const FULL_EP_SHOW_TAGS = {
+  'full l1 ep':             { show: 'Layer One',             mediaType: 'Full Episode' },
+  'full bbp ep':            { show: 'The Big Brain Podcast', mediaType: 'Full Episode' },
+  'full tcb ep':            { show: 'The Crypto Beat',       mediaType: 'Full Episode' },
+  'full twp ep':            { show: 'The White Papers',      mediaType: 'Full Episode' },
+  'full atb ep':            { show: 'Around the Block',      mediaType: 'Full Episode' },
+  'full tsb interview / ep':{ show: 'The Starting Block',    mediaType: 'Full Episode' },
 }
 
 const TAG_PREFIXES = [
@@ -22,20 +50,39 @@ const TAG_PREFIXES = [
   { prefix: 'wp',   show: 'The White Papers' },
   { prefix: 'sa',   show: 'Standalones' },
   { prefix: 'ed',   show: 'Editorials' },
+  // Around the Block episodes
+  { prefix: 'atb',  show: 'Around the Block' },
+  // The Starting Block episodes
+  { prefix: 'tsb',  show: 'The Starting Block' },
 ]
 
 function parseTag(tagText) {
   if (!tagText) return null
   const t = tagText.trim()
+  const lower = t.toLowerCase()
+
+  // Check full-episode show tags first (sets both show and mediaType)
+  for (const [kw, val] of Object.entries(FULL_EP_SHOW_TAGS)) {
+    if (lower === kw || lower.includes(kw)) return { show: val.show, mediaType: val.mediaType, type: 'fullEpShow' }
+  }
+
+  // Check media type overrides (Clip, Full Episode, Podcast Article, etc.)
+  for (const [kw, mediaType] of Object.entries(TAG_MEDIA_TYPE_OVERRIDES)) {
+    if (lower === kw || lower.includes(kw)) return { mediaType, type: 'mediaType' }
+  }
+
+  // Episode prefix tags (TCB 73, L1 01, TSB 3, ATB 02, etc.)
   for (const { prefix, show } of TAG_PREFIXES) {
     const m = t.match(new RegExp(`^${prefix}\\s*(\\d+)$`, 'i'))
     if (m) return { show, episode: String(parseInt(m[1], 10)), type: 'episode' }
   }
-  const lower = t.toLowerCase()
+
+  // Collection/show tags
   for (const [kw, show] of Object.entries(COLLECTION_TO_SHOW)) {
     if (lower === kw || lower.includes(kw)) return { show, episode: null, type: 'collection' }
   }
-  // Check campaign keywords
+
+  // Campaign keywords fallback
   for (const kw of CAMPAIGN_KEYWORDS) {
     if (lower.includes(kw)) return { show: 'Partners & Campaigns', episode: null, type: 'collection' }
   }
@@ -230,25 +277,30 @@ export async function onRequestPost({ request, env }) {
     const normUrl = normalizeUrl(permalink)
     if (existingUrls.has(normUrl) || deletedUrls.has(normUrl)) { skipped++; continue }
 
-    // Skip standalone LinkedIn posts — only allow LinkedIn if it's a cross-posted Editorial
-    // OR if it's mapped to an episode show (not Unassigned)
+    // Platform detection
     const platform = detectPlatform(permalink)
-    if (platform === 'LinkedIn') {
-      const normUrl = normalizeUrl(permalink)
-      const isEditorialCrossPost = editorialLinkedInUrls.has(normUrl)
-      // Check if it has an episode tag (will be mapped to a show)
-      const postTagIds2 = (sp.internal?.tags||[]).map(t=>t.id)
-      const hasEpisodeTag = postTagIds2.some(tid => tagMap[tid]?.type === 'episode')
-      if (!isEditorialCrossPost && !hasEpisodeTag) { skipped++; continue }
-    }
 
     // Determine show + episode from Sprout tags
     const postTagIds = (sp.internal?.tags || []).map(t => t.id)
     let showName = 'Unassigned', episodeNumber = '', matchType = null
 
+    let tagMediaType = null  // media type explicitly set by a tag
     for (const tagId of postTagIds) {
       const tm = tagMap[tagId]
       if (!tm) continue
+      if (tm.type === 'mediaType') {
+        tagMediaType = tm.mediaType
+        continue
+      }
+      if (tm.type === 'fullEpShow') {
+        // Sets both show and media type — only if no episode tag already set
+        if (matchType !== 'episode') {
+          showName = tm.show
+          tagMediaType = tm.mediaType
+          matchType = 'collection'
+        }
+        continue
+      }
       if (tm.type === 'episode') {
         showName = tm.show
         episodeNumber = tm.episode || ''
@@ -263,8 +315,11 @@ export async function onRequestPost({ request, env }) {
 
     if (matchType) tagged++
     else {
-      // Untagged X posts are news headlines → Newsroom
+      // Untagged X posts → Newsroom
       if (platform === 'X') showName = 'Newsroom'
+      // Untagged LinkedIn/Instagram posts → Editorials
+      // These are always standalone editorial image/link posts
+      else if (platform === 'LinkedIn' || platform === 'Instagram') showName = 'Editorials'
       unassigned++
     }
 
@@ -277,6 +332,8 @@ export async function onRequestPost({ request, env }) {
     const isYouTubeShort = platform === 'YouTube' && (permalink.toLowerCase().includes('/shorts/'))
     let mediaType = resolveMediaType(platform, isEditorial, isNewsroom, isClipAccount, postText, isPartner)
     if (isYouTubeShort) mediaType = 'Clip'
+    // Tag-based media type override wins over everything except YouTube Shorts
+    if (tagMediaType && !isYouTubeShort) mediaType = tagMediaType
     const text = (sp.text || '').replace(/https?:\/\/\S+/g, '').trim()
     const title = text.length > 120 ? text.slice(0, 120) + '…' : text || permalink
     const createdAt = sp.created_time ? new Date(sp.created_time) : new Date()

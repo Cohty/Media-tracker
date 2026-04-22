@@ -7,6 +7,9 @@ export const SHOWS = [
   { name: 'Editorials',            hex: '#00a8ff', bg: '#001428', tc: '#00a8ff' },
   { name: 'Newsroom',              hex: '#e0d0ff', bg: '#12101e', tc: '#c0b4e8' },
   { name: 'Partners & Campaigns',   hex: '#ff6b35', bg: '#2a1200', tc: '#ff6b35' },
+  { name: 'Around the Block',          hex: '#f9a825', bg: '#2a1e00', tc: '#f9a825' },
+  { name: 'The Starting Block',        hex: '#7c4dff', bg: '#1a0040', tc: '#7c4dff' },
+  { name: 'Conferences',               hex: '#26c6da', bg: '#001e26', tc: '#26c6da' },
 ]
 
 export const UNASSIGNED = { name: 'Unassigned', hex: '#4a4168', bg: '#0f0c1e', tc: '#4a4168' }
@@ -28,8 +31,13 @@ export const COLLECTION_TO_SHOW = {
   'editorials':            'Editorials',
   'editorial':             'Editorials',
   'newsroom clips':        'Standalones',
-  'around the block':      'Standalones',
-  'the starting block':    'Standalones',
+  'around the block':      'Around the Block',
+  'atb':                   'Around the Block',
+  'the starting block':    'The Starting Block',
+  'tsb':                   'The Starting Block',
+  'ethcc':                 'Conferences',
+  'pbw':                   'Conferences',
+  'conference':            'Conferences',
 }
 
 // Map Sprout tag PREFIXES → { show, episodePrefix }
@@ -42,6 +50,8 @@ export const TAG_PREFIXES = [
   { prefix: 'wp',   show: 'The White Papers'       },
   { prefix: 'sa',   show: 'Standalones'            },
   { prefix: 'ed',   show: 'Editorials'             },
+  { prefix: 'atb',  show: 'Around the Block'       },
+  { prefix: 'tsb',  show: 'The Starting Block'     },
 ]
 
 export function parseTagToShowAndEpisode(tagText) {
