@@ -163,11 +163,34 @@ export default function App() {
       )}
 
       {activeView === 'board' && (
-        <div className="board-scroll-wrapper">
-          <Board posts={boardPosts} onDelete={handleDeletePost} onMove={setMovingPost}
-            highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect}
-            onUpdatePost={handleUpdatePost} hiddenCols={hiddenCols} onToggleHiddenCol={toggleHiddenCol} />
-        </div>
+        <>
+          {/* Column toggle bar — above the scrollbar */}
+          <div className="col-toggle-bar">
+            <span className="col-toggle-label">COLUMNS</span>
+            <div className="col-toggle-pills">
+              {[...SHOWS, { name: 'Unassigned', hex: '#666' }].map(col => {
+                const isHidden = hiddenCols.has(col.name)
+                const count = boardPosts.filter(p => col.name === 'Unassigned' ? (!p.show || p.show === 'Unassigned') : p.show === col.name).length
+                return (
+                  <button key={col.name}
+                    className={`col-toggle-pill${isHidden ? ' col-toggle-pill--off' : ''}`}
+                    style={!isHidden ? { color: col.hex, borderColor: col.hex + '55', background: col.hex + '12' } : {}}
+                    onClick={() => toggleHiddenCol(col.name)}>
+                    <span className="col-toggle-dot" style={{ background: isHidden ? 'var(--border2)' : col.hex }} />
+                    {col.name}
+                    {count > 0 && <span className="col-toggle-count">{count}</span>}
+                    <span className="col-toggle-x">{isHidden ? '+' : '×'}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div className="board-scroll-wrapper">
+            <Board posts={boardPosts} onDelete={handleDeletePost} onMove={setMovingPost}
+              highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect}
+              onUpdatePost={handleUpdatePost} hiddenCols={hiddenCols} onToggleHiddenCol={toggleHiddenCol} />
+          </div>
+        </>
       )}
       {activeView === 'calendar'  && <CalendarView posts={posts} />}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={handleUpdatePost}

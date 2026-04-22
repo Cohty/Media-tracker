@@ -11,29 +11,6 @@ export default function Board({ posts, onDelete, onMove, highlightedPostId, sele
 
   return (
     <div>
-      {/* Column toggle bar */}
-      <div className="col-toggle-bar">
-        <span className="col-toggle-label">COLUMNS</span>
-        <div className="col-toggle-pills">
-          {allCols.map(col => {
-            const isHidden = hiddenCols.has(col.name)
-            const count = col.name === 'Unassigned'
-              ? unassignedPosts.length
-              : posts.filter(p => p.show === col.name).length
-            return (
-              <button key={col.name}
-                className={`col-toggle-pill${isHidden ? ' col-toggle-pill--off' : ''}`}
-                style={!isHidden ? { color: col.hex, borderColor: col.hex + '55', background: col.hex + '12' } : {}}
-                onClick={() => onToggleHiddenCol(col.name)}>
-                <span className="col-toggle-dot" style={{ background: isHidden ? 'var(--border2)' : col.hex }} />
-                {col.name}
-                {count > 0 && <span className="col-toggle-count">{count}</span>}
-                <span className="col-toggle-x">{isHidden ? '+' : '×'}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
 
       {/* Board */}
       <div className="board">
