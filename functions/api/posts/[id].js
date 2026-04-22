@@ -58,7 +58,15 @@ export async function onRequestDelete({ params, request, env }) {
   const postId = params.id
 
   if (user.isAdmin) {
+    // Get the URL before deleting so we can blacklist it
+    const post = await env.DB.prepare('SELECT url FROM posts WHERE id = ?').bind(postId).first()
     await env.DB.prepare('DELETE FROM posts WHERE id = ?').bind(postId).run()
+    // Track deleted URL to prevent re-import
+    if (post?.url) {
+      await env.DB.prepare(
+        'INSERT OR REPLACE INTO deleted_urls (url, deleted_at) VALUES (?, ?)'
+      ).bind(post.url, Date.now()).run()
+    }
     return jsonResponse({ ok: true, status: 'deleted' })
   } else {
     const pendingId = `pnd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`

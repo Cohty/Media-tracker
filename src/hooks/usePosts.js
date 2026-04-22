@@ -41,7 +41,9 @@ export function usePosts() {
     const res = await fetch(`/api/posts/${id}`, { method: 'DELETE', headers: getAuthHeaders() })
     const result = await res.json()
     if (result.status === 'deleted') {
+      // Optimistic update + server refetch to ensure UI is correct
       setPosts(prev => prev.filter(p => p.id !== id))
+      fetchPosts() // also refetch from server
     }
     return result.status
   }

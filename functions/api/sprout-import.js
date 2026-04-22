@@ -144,6 +144,10 @@ export async function onRequestPost({ request, env }) {
   const { results: existing } = await env.DB.prepare('SELECT url FROM posts').all()
   const existingUrls = new Set(existing.map(r => normalizeUrl(r.url)))
 
+  // Also load deleted URLs — never re-import posts the user has deleted
+  const { results: deletedRows } = await env.DB.prepare('SELECT url FROM deleted_urls').all()
+  const deletedUrls = new Set(deletedRows.map(r => normalizeUrl(r.url)))
+
   // Fetch posts from Sprout (paginated)
   let allPosts = [], page = 1, totalPages = 1
   do {
@@ -224,7 +228,7 @@ export async function onRequestPost({ request, env }) {
     if (!permalink) { skipped++; continue }
 
     const normUrl = normalizeUrl(permalink)
-    if (existingUrls.has(normUrl)) { skipped++; continue }
+    if (existingUrls.has(normUrl) || deletedUrls.has(normUrl)) { skipped++; continue }
 
     // Skip standalone LinkedIn posts — only allow LinkedIn if it's a cross-posted Editorial
     // OR if it's mapped to an episode show (not Unassigned)

@@ -65,8 +65,21 @@ export async function onRequestDelete({ request, env }) {
   if (!Array.isArray(ids) || ids.length === 0) {
     return new Response(JSON.stringify({ error: 'No ids provided' }), { status: 400 })
   }
+  // Fetch URLs before deleting to blacklist them
   const placeholders = ids.map(() => '?').join(',')
+  const { results: toDelete } = await env.DB.prepare(
+    `SELECT id, url FROM posts WHERE id IN (${placeholders})`
+  ).bind(...ids).all()
+  // Delete the posts
   await env.DB.prepare(`DELETE FROM posts WHERE id IN (${placeholders})`).bind(...ids).run()
+  // Track deleted URLs to prevent re-import
+  for (const p of toDelete) {
+    if (p.url) {
+      await env.DB.prepare(
+        'INSERT OR REPLACE INTO deleted_urls (url, deleted_at) VALUES (?, ?)'
+      ).bind(p.url, Date.now()).run()
+    }
+  }
   return new Response(JSON.stringify({ ok: true, deleted: ids.length }), { headers: { 'Content-Type': 'application/json' } })
 }
 
