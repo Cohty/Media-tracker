@@ -139,18 +139,29 @@ export function useSprout() {
     )
 
     if (xPosts.length > 0) {
-      onProgress?.(`Fetching X API view counts for ${xPosts.length} X posts…`)
-      let xCount = 0
-      for (const post of xPosts) {
-        try {
-          const res = await fetch('/api/x-stats', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify({ url: post.syncUrl?.trim() || post.url || '' }),
-          })
-          if (res.ok) {
-            const xData = await res.json()
-            if (xData.viewCount || xData.impressions) {
+      // Only fetch X API for posts missing videoViews (limit to 50 per sync to avoid rate limits)
+      const needsXFetch = xPosts
+        .filter(p => !p.videoViews || p.videoViews === '')
+        .slice(0, 50)
+
+      if (needsXFetch.length > 0) {
+        onProgress?.(`Fetching X API stats for ${needsXFetch.length} posts…`)
+
+        // Batch in parallel groups of 10
+        const BATCH = 10
+        let xCount = 0
+        for (let i = 0; i < needsXFetch.length; i += BATCH) {
+          const batch = needsXFetch.slice(i, i + BATCH)
+          const settled = await Promise.allSettled(batch.map(post =>
+            fetch('/api/x-stats', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+              body: JSON.stringify({ url: post.syncUrl?.trim() || post.url || '' }),
+            }).then(r => r.ok ? r.json() : null).then(xData => ({ post, xData }))
+          ))
+          for (const r of settled) {
+            if (r.status === 'fulfilled' && r.value?.xData?.viewCount) {
+              const { post, xData } = r.value
               const existing = results.find(r => r.id === post.id)
               if (existing) {
                 if (xData.viewCount) existing.videoViews = xData.viewCount
@@ -161,9 +172,12 @@ export function useSprout() {
               xCount++
             }
           }
-        } catch { /* skip failed X API calls silently */ }
+          onProgress?.(`X API: ${Math.min(i + BATCH, needsXFetch.length)}/${needsXFetch.length} fetched`)
+        }
+        onProgress?.(`Fetched X stats for ${xCount} posts`)
+      } else {
+        onProgress?.('X API: all posts already have stats')
       }
-      onProgress?.(`Fetched X view counts for ${xCount} posts`)
     }
 
     return results
