@@ -1,4 +1,5 @@
 import { requireAuth, jsonResponse } from '../_auth.js'
+import { findDuplicate } from '../_normalize.js'
 
 export async function onRequestGet({ env }) {
   const { results } = await env.DB.prepare(
@@ -35,6 +36,12 @@ export async function onRequestPost({ request, env }) {
   if (error) return error
 
   const body = await request.json()
+
+  // Server-side duplicate guard — defense in depth in case client state is stale
+  const dup = await findDuplicate(env, body.url)
+  if (dup) {
+    return jsonResponse({ ok: false, status: 'duplicate', duplicate: dup }, 409)
+  }
 
   if (user.isAdmin) {
     // Admin: write directly to posts

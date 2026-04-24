@@ -1,4 +1,5 @@
 import { requireAuth, jsonResponse } from '../../../_auth.js'
+import { findDuplicate } from '../../../_normalize.js'
 
 export async function onRequestPost({ params, request, env }) {
   const { error, user } = requireAuth(request, env)
@@ -19,6 +20,16 @@ export async function onRequestPost({ params, request, env }) {
 
   if (decision === 'approve') {
     if (pending.action === 'add') {
+      // Dedupe check — admin may have logged the same URL while submission was pending
+      const dup = await findDuplicate(env, payload.url)
+      if (dup) {
+        // Auto-reject instead of creating a duplicate
+        await env.DB.prepare(`
+          UPDATE pending_posts SET status = 'rejected', reviewed_by = ?, reviewed_at = ?, review_note = ?
+          WHERE id = ?
+        `).bind(user.email, Date.now(), `Auto-rejected: duplicate of post ${dup.id}`, pendingId).run()
+        return jsonResponse({ ok: false, status: 'duplicate', duplicate: dup }, 409)
+      }
       await env.DB.prepare(`
         INSERT INTO posts
           (id, url, title, show_name, platform, media_type, episode_number, clip_index,

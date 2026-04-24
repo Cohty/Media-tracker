@@ -897,6 +897,16 @@ body {
 }
 .batch-btn--export:hover { background: rgba(240,224,64,0.14); }
 
+.batch-btn--compare {
+  color: var(--cyan); border-color: rgba(0,229,255,0.4);
+  background: rgba(0,229,255,0.08);
+  text-shadow: 0 0 8px rgba(0,229,255,0.5);
+}
+.batch-btn--compare:hover {
+  background: rgba(0,229,255,0.18);
+  box-shadow: 0 0 12px rgba(0,229,255,0.25);
+}
+
 .card-checkbox.partial { background: rgba(180,78,255,0.4); border-color: var(--purple); }
 
 /* ── DATE RANGE BAR ── */

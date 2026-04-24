@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { SHOWS, MEDIA_TYPES } from '../constants'
 import { useSprout } from '../hooks/useSprout'
 import SproutImportModal from './SproutImportModal'
@@ -23,6 +23,7 @@ const SORT_OPTIONS = [
 // Pure SVG chart — bar or line, with hover tooltip
 function StatChart({ data, activeMetrics, chartType }) {
   const [tooltip, setTooltip] = useState(null)
+  const svgRef = useRef(null)
 
   if (!data || data.length === 0) return null
 
@@ -50,17 +51,31 @@ function StatChart({ data, activeMetrics, chartType }) {
   const groupW = cw / data.length
   const barW = Math.min(Math.floor(groupW / (activeCols.length + 0.5)), 44)
 
+  // Convert an SVG x-coordinate to a pixel offset inside the relative wrapper.
+  // We use the SVG's live bounding rect so this stays correct at any viewport width.
+  function svgXToPixel(svgX) {
+    const rect = svgRef.current?.getBoundingClientRect()
+    if (!rect) return 0
+    return (svgX / w) * rect.width
+  }
+
+  function showTooltip(d, svgX) {
+    const px = svgXToPixel(svgX)
+    setTooltip({ ...d, px })
+  }
+
   return (
     <div style={{ position: 'relative' }}>
       {tooltip && (
         <div style={{
           position: 'absolute', zIndex: 10, pointerEvents: 'none',
-          left: tooltip.x + 12, top: tooltip.y - 10,
+          left: tooltip.px, top: 4, transform: 'translateX(-50%)',
           background: '#0f0c1e', border: '1px solid rgba(180,78,255,0.5)',
           borderRadius: 4, padding: '8px 12px', fontFamily: 'DM Mono', fontSize: 10,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.6)', minWidth: 160,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.6)', minWidth: 160, maxWidth: 260,
+          whiteSpace: 'nowrap',
         }}>
-          <div style={{ color: '#e2d9ff', marginBottom: 5, fontWeight: 500 }}>{tooltip.title}</div>
+          <div style={{ color: '#e2d9ff', marginBottom: 5, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>{tooltip.title}</div>
           {tooltip.ep && <div style={{ color: '#4a4168', fontSize: 9, marginBottom: 5 }}>EP {tooltip.ep}</div>}
           {activeCols.map(m => (
             <div key={m.id} style={{ color: m.color, marginBottom: 2 }}>
@@ -69,7 +84,7 @@ function StatChart({ data, activeMetrics, chartType }) {
           ))}
         </div>
       )}
-      <svg width="100%" viewBox={`0 0 ${w} ${h}`}
+      <svg ref={svgRef} width="100%" viewBox={`0 0 ${w} ${h}`}
         style={{ display: 'block', overflow: 'visible' }}
         onMouseLeave={() => setTooltip(null)}>
 
@@ -89,10 +104,9 @@ function StatChart({ data, activeMetrics, chartType }) {
           data.map((d, i) => {
             const gx = padL + i * groupW
             const groupPad = (groupW - barW * activeCols.length) / 2
+            const groupCenterX = gx + groupW / 2
             return (
-              <g key={i}
-                onMouseEnter={e => setTooltip({ ...d, x: e.clientX - e.currentTarget.closest('svg').getBoundingClientRect().left, y: 20 })}
-              >
+              <g key={i} onMouseEnter={() => showTooltip(d, groupCenterX)}>
                 {/* Invisible hit area */}
                 <rect x={gx} y={padT} width={groupW} height={ch} fill="transparent" />
                 {activeCols.map((m, ki) => {
@@ -123,7 +137,7 @@ function StatChart({ data, activeMetrics, chartType }) {
                 <path d={pathD} fill="none" stroke={m.color} strokeWidth={2} opacity={0.85} />
                 {pts.map((p, i) => (
                   <circle key={i} cx={p.x} cy={p.y} r={3} fill={m.color}
-                    onMouseEnter={e => setTooltip({ ...data[i], x: e.clientX - e.currentTarget.closest('svg').getBoundingClientRect().left, y: 20 })}
+                    onMouseEnter={() => showTooltip(data[i], p.x)}
                   />
                 ))}
               </g>

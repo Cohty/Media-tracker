@@ -35,7 +35,7 @@ function fmt(n) {
   return String(v)
 }
 
-export default function BatchBar({ selectedIds, posts, onDelete, onRetag, onClear }) {
+export default function BatchBar({ selectedIds, posts, onDelete, onRetag, onClear, onCompare }) {
   const [retagShow, setRetagShow] = useState('')
   const [retagType, setRetagType] = useState('')
   const [retagEpisode, setRetagEpisode] = useState('')
@@ -99,6 +99,18 @@ export default function BatchBar({ selectedIds, posts, onDelete, onRetag, onClea
       </div>
 
       <div className="batch-bar-right">
+        {/* Compare — only when exactly 2 selected */}
+        {selectedIds.size === 2 && (
+          <>
+            <button className="batch-btn batch-btn--compare"
+              onClick={() => onCompare(selectedPosts)}
+              title="Compare these two posts side by side">
+              ⚔ Compare
+            </button>
+            <div className="batch-divider" />
+          </>
+        )}
+
         {/* CSV Export */}
         <button className="batch-btn batch-btn--export" onClick={() => exportCSV(selectedPosts)}
           title="Export selected posts with views, engagement & impressions">

@@ -19,6 +19,7 @@ import ImportSummaryModal from './components/ImportSummaryModal'
 import InboxView from './components/InboxView'
 import HelpView from './components/HelpView'
 import LeaderboardView from './components/LeaderboardView'
+import CompareModal from './components/CompareModal'
 
 export default function App() {
   const { user } = useUser()
@@ -33,6 +34,7 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [summaryLogId, setSummaryLogId] = useState(null)
   const [boardSearch, setBoardSearch] = useState('')
+  const [comparePair, setComparePair] = useState(null)
 
 
 
@@ -101,8 +103,12 @@ export default function App() {
   }
 
   async function handleAddPost(data) {
-    const status = await addPost(data)
-    showToast(status === 'pending_review' ? 'Post submitted for review' : 'Post logged', status === 'pending_review' ? 'pending' : 'success')
+    const result = await addPost(data)
+    if (result.status === 'duplicate') {
+      showToast(`Already logged: "${result.duplicate?.title || 'this post'}"`, 'pending')
+      return
+    }
+    showToast(result.status === 'pending_review' ? 'Post submitted for review' : 'Post logged', result.status === 'pending_review' ? 'pending' : 'success')
   }
 
   async function handleDeletePost(id) {
@@ -162,7 +168,8 @@ export default function App() {
       {selectedIds.size > 0 && (
         <BatchBar selectedIds={selectedIds} posts={posts}
           onDelete={handleBatchDelete} onRetag={handleBatchRetag}
-          onClear={() => setSelectedIds(new Set())} />
+          onClear={() => setSelectedIds(new Set())}
+          onCompare={pair => setComparePair(pair)} />
       )}
 
       {activeView === 'board' && (
@@ -214,6 +221,8 @@ export default function App() {
           onApproved={() => { refetch(); setPendingCount(c => Math.max(0, c-1)) }} />
       )}
       <ImportSummaryModal logId={summaryLogId} isOpen={!!summaryLogId} onClose={() => setSummaryLogId(null)} />
+      <CompareModal isOpen={!!comparePair} postA={comparePair?.[0]} postB={comparePair?.[1]}
+        onClose={() => setComparePair(null)} />
     </>
   )
 }

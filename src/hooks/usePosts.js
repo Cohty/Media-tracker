@@ -34,7 +34,8 @@ export function usePosts() {
     if (result.status === 'published') {
       setPosts(prev => [post, ...prev])
     }
-    return result.status // 'published' | 'pending_review'
+    // 'published' | 'pending_review' | 'duplicate'
+    return result
   }
 
   async function deletePost(id) {
