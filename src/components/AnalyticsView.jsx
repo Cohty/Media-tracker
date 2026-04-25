@@ -5,6 +5,7 @@ import SproutImportModal from './SproutImportModal'
 import ImportSummaryModal from './ImportSummaryModal'
 import AnalyticsCalendar, { postDayKey } from './AnalyticsCalendar'
 import AnalyticsAreaChart from './AnalyticsAreaChart'
+import { getStatNote } from '../lib/statMapping'
 
 const METRICS = [
   { id: 'views',       label: 'Views',       color: '#00e5ff' },
@@ -422,15 +423,22 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone, onPos
                   <div className="analytics-cell-text">{post.mediaType || '—'}</div>
                   {post.episodeNumber && <div className="analytics-cell-sub">EP {post.episodeNumber}</div>}
                 </div>
-                {['views','engagement','impressions'].map(field => (
-                  <div key={field} className="analytics-cell">
-                    <input type="number" className="stat-input"
-                      value={post.stats?.[field] ?? ''}
-                      placeholder="—"
-                      onChange={e => handleStatChange(post.id, field, e.target.value)}
-                    />
-                  </div>
-                ))}
+                {['views','engagement','impressions'].map(field => {
+                  const note = getStatNote(post.platform, field)
+                  return (
+                    <div key={field} className="analytics-cell" style={{ position: 'relative' }}>
+                      <input type="number" className="stat-input"
+                        value={post.stats?.[field] ?? ''}
+                        placeholder="—"
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => handleStatChange(post.id, field, e.target.value)}
+                      />
+                      {note && (
+                        <span className="analytics-note-icon" title={note}>ⓘ</span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )
           })}

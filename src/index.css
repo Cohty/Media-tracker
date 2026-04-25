@@ -2059,3 +2059,35 @@ body {
   text-align: left;
   white-space: normal;
 }
+
+/* ── ANALYTICS TABLE NOTE ICON ── */
+.analytics-note-icon {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--text3);
+  cursor: help;
+  pointer-events: auto;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+.analytics-note-icon:hover {
+  opacity: 1;
+  color: var(--cyan);
+}
+
+/* ── POST DETAIL TILE NOTE ICON ── */
+.post-detail-tile-note {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: 0.5;
+  cursor: help;
+  vertical-align: middle;
+}
+.post-detail-tile-note:hover {
+  opacity: 1;
+}

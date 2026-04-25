@@ -85,3 +85,31 @@ export function buildStatsPayload(platform, sproutMetrics, { lastSynced = Date.n
 
   return stats
 }
+
+// Returns the platform-specific note for a given metric, or null if there's nothing
+// noteworthy. Used by Card, AnalyticsView table, and PostDetailModal to surface platform
+// quirks via tooltips so users don't think the dashboard is broken.
+const X_NOTE = "On X, views and impressions report the same number — both reflect the post's eyeball count."
+
+export function getStatNote(platform, metric) {
+  // X: both views AND impressions need the same note
+  if (platform === 'X' || platform === 'Twitter') {
+    if (metric === 'views' || metric === 'impressions') return X_NOTE
+    return null
+  }
+
+  if (metric === 'views') {
+    if (platform === 'TikTok') return 'TikTok views and impressions are the same metric — Sprout derives impressions from views.'
+    if (platform === 'Instagram') return 'Instagram impressions are now reported as views (Meta API change, Jan 2025).'
+    return null
+  }
+
+  if (metric === 'impressions') {
+    if (platform === 'TikTok') return 'TikTok views and impressions are the same metric — Sprout derives impressions from views.'
+    if (platform === 'YouTube') return "YouTube impressions aren't available via Sprout. Enter manually from YouTube Studio if needed."
+    if (platform === 'Instagram') return 'Instagram no longer reports impressions distinctly — see Views.'
+    return null
+  }
+
+  return null
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { getAuthHeaders } from '../hooks/useUser'
 import { PLATFORMS } from '../constants'
-import { buildStatsPayload } from '../lib/statMapping'
+import { buildStatsPayload, getStatNote } from '../lib/statMapping'
 
 const TYPE_COLORS = {
   'Full Episode':  { color: '#39ff8c', bg: 'rgba(57,255,140,0.08)', border: 'rgba(57,255,140,0.25)' },
@@ -83,19 +83,6 @@ function StatWithTooltip({ icon, mainVal, tooltipLabel, tooltipVal, color, note 
   )
 }
 
-// Platform-specific notes for the views/impressions tooltips.
-// These explain quirks that would otherwise look like bugs to users.
-const VIEWS_NOTES = {
-  TikTok: 'TikTok views and impressions are the same metric — Sprout derives impressions from views.',
-  Instagram: 'Instagram impressions are now reported as views (Meta API change, Jan 2025).',
-}
-const IMPRESSIONS_NOTES = {
-  X: 'On X, impressions and views report the same number — both reflect the post’s eyeball count.',
-  Twitter: 'On X, impressions and views report the same number — both reflect the post’s eyeball count.',
-  YouTube: 'YouTube impressions aren’t available via Sprout. Enter manually from YouTube Studio if needed.',
-}
-const X_VIEWS_NOTE = 'On X, views and impressions report the same number — both reflect the post’s eyeball count.'
-
 function CardStats({ post }) {
   const isX = post.platform === 'X' || post.platform === 'Twitter' ||
     (post.url||'').includes('twitter.com') || (post.url||'').includes('x.com')
@@ -112,8 +99,9 @@ function CardStats({ post }) {
   const impTooltipLabel = xImp > sImp ? 'Sprout' : xImp > 0 ? 'X API' : null
   const impTooltipVal = xImp > sImp ? sImp : xImp > 0 && xImp < sImp ? xImp : null
 
-  const viewsNote = isX ? X_VIEWS_NOTE : VIEWS_NOTES[post.platform]
-  const impNote = isX ? X_VIEWS_NOTE : IMPRESSIONS_NOTES[post.platform]
+  const platformKey = isX ? 'X' : post.platform
+  const viewsNote = getStatNote(platformKey, 'views')
+  const impNote = getStatNote(platformKey, 'impressions')
 
   return (
     <div className="card-stats-row">

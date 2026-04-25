@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { SHOWS, PLATFORMS, UNASSIGNED } from '../constants'
+import { getStatNote } from '../lib/statMapping'
 
 // Platform logos as inline SVGs — keep colors monochrome and let the parent tint.
 function PlatformLogo({ platform, size = 32, color = '#fff' }) {
@@ -273,14 +274,18 @@ export default function PostDetailModal({ post, isOpen, onClose, onEdit, onDelet
               <div className="post-detail-tiles">
                 {METRICS.map(m => {
                   const val = metrics[m.id]
+                  const note = getStatNote(post.platform, m.id)
                   return (
                     <div key={m.id} className="post-detail-tile"
                       style={{
                         borderColor: val > 0 ? `${m.color}55` : 'var(--border)',
                         background: val > 0 ? `${m.color}08` : 'transparent',
                       }}>
-                      <div className="post-detail-tile-label" style={{ color: m.color }}>
+                      <div className="post-detail-tile-label" style={{ color: m.color, position: 'relative' }}>
                         {m.icon} {m.label.toUpperCase()}
+                        {note && (
+                          <span className="post-detail-tile-note" title={note}>ⓘ</span>
+                        )}
                       </div>
                       <div className="post-detail-tile-value"
                         style={{
