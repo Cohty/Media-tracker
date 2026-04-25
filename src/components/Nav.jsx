@@ -1,7 +1,6 @@
 const TABS = [
   { id: 'leaderboard', label: 'TOP',       icon: '🏆' },
   { id: 'board',       label: 'BOARD',     icon: '▦' },
-  { id: 'calendar',    label: 'CALENDAR',  icon: '◫' },
   { id: 'analytics',   label: 'ANALYTICS', icon: '▲' },
   { id: 'podcast',     label: 'PODCAST',   icon: '🎙' },
   { id: 'help',        label: 'HELP',      icon: '?' },

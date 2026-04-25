@@ -15,7 +15,7 @@ const SECTIONS = [
       },
       {
         q: 'What are the tabs?',
-        a: `• 🏆 TOP — Leaderboard of best performing content\n• ▦ BOARD — Kanban columns organized by show\n• ◫ CALENDAR — Posts by publish date with metrics\n• ▲ ANALYTICS — Charts and stats table\n• 🎙 PODCAST — Transistor.fm download data\n• ? HELP — You're here\n\n📬 Inbox, 📥 Import, and ⟳ Sync are in the top header — accessible from any tab.`,
+        a: `• 🏆 TOP — Leaderboard of best performing content\n• ▦ BOARD — Kanban columns organized by show\n• ▲ ANALYTICS — Calendar date filter, performance chart, and stats table\n• 🎙 PODCAST — Transistor.fm download data\n• ? HELP — You're here\n\n📬 Inbox, 📥 Import, and ⟳ Sync are in the top header — accessible from any tab.`,
       },
       {
         q: 'Who can access this?',
@@ -120,16 +120,20 @@ const SECTIONS = [
     ],
   },
   {
-    title: '◫ Calendar',
+    title: '◫ Analytics Calendar',
     color: '#39ff8c',
     faqs: [
       {
-        q: 'How do I use the calendar?',
-        a: `Click any day to see posts published that day. Click a second day to select a range. The Filter Results panel on the right shows everything in that window. Click "✕ Clear selection" or CLEAR to reset.`,
+        q: 'How does the date range work on Analytics?',
+        a: `The calendar on the left of the Analytics page is the date filter. Click any day to filter to just that day, or click and drag across multiple days to select a range. Quick presets — 7d, 30d, 90d — and a Today jump are below the grid. Click ✕ Clear to go back to all time.`,
       },
       {
-        q: 'What can I do in the Filter Results panel?',
-        a: `• Type counts with hover breakdown — hover over "48 Clips" to see exactly which posts make up that count with their stats\n• Metric totals — hover over 5.6M, 130.9k etc. to see the full exact number\n• Sort by: Date · 👁 Views · 💬 Engage · 📢 Impressions · Type\n• Type filter pills — show only Clips, Articles, etc. for the selected range`,
+        q: 'What do the cell colors mean?',
+        a: `Each day is shaded by how many posts were published that day — darker cells = busier days. The number in the corner is the post count. Today is outlined in yellow.`,
+      },
+      {
+        q: 'How does the calendar connect to the chart?',
+        a: `Hover a day on the calendar and you'll see a crosshair appear on the chart at that date. Hover a point on the chart and the matching calendar cell highlights. Rows in the Post Stats table below also highlight when their day is hovered.`,
       },
     ],
   },

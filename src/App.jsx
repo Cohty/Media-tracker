@@ -8,7 +8,6 @@ import StatsBar from './components/StatsBar'
 import DateRangeBar, { useDateRange } from './components/DateRangeBar'
 import Nav from './components/Nav'
 import Board from './components/Board'
-import CalendarView from './components/CalendarView'
 import AnalyticsView from './components/AnalyticsView'
 import PodcastView from './components/PodcastView'
 import LogModal from './components/LogModal'
@@ -202,7 +201,6 @@ export default function App() {
           </div>
         </>
       )}
-      {activeView === 'calendar'  && <CalendarView posts={posts} />}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={handleUpdatePost}
         onImportDone={logId => setSummaryLogId(logId)} />}
       {activeView === 'podcast'   && <PodcastView />}
