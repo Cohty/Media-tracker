@@ -75,6 +75,12 @@ export function useSprout() {
   async function syncPostStats(posts, onProgress) {
     if (profileIds.length === 0) throw new Error('No Sprout profile IDs found.')
 
+    // Sort newest-first so sync prioritizes recent posts. This affects:
+    //   1. Match loop order (results array ordering)
+    //   2. X API fallback's slice(0, 50) — recent X posts get the API budget
+    //   3. Apply order in caller — DB writes happen newest-first
+    posts = [...posts].sort((a, b) => (b.ts || 0) - (a.ts || 0))
+
     const now = new Date()
     const start = new Date(now)
     start.setDate(now.getDate() - 365)

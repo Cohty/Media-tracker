@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getAuthHeaders } from '../hooks/useUser'
 import { PLATFORMS } from '../constants'
+import { buildStatsPayload } from '../lib/statMapping'
 
 const TYPE_COLORS = {
   'Full Episode':  { color: '#39ff8c', bg: 'rgba(57,255,140,0.08)', border: 'rgba(57,255,140,0.25)' },
@@ -61,29 +62,30 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
             'customer_profile_id.eq(7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559)',
             `created_time.in(${fmt(start)}..${fmt(now)})`,
           ],
-          fields: ['perma_link'],
-          metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views'],
+          fields: ['perma_link', 'created_time'],
+          metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.views'],
           page: 1, limit: 200,
         }),
       })
       const data = await res.json()
       const match = (data?.data || []).find(sp => normalizeUrl(sp.perma_link || '') === normUrl)
       if (match) {
-        const m = match.metrics || {}
-        const stats = {}
-        const views = m['lifetime.video_views'] || m['lifetime.impressions'] || 0
-        const engagement = m['lifetime.engagements'] || 0
-        const impressions = m['lifetime.impressions'] || 0
-        if (views > 0)       stats.views = String(views)
-        if (engagement > 0)  stats.engagement = String(engagement)
-        if (impressions > 0) stats.impressions = String(impressions)
-        stats.lastSynced = Date.now()
-        if (Object.keys(stats).length > 1) {
-          await onUpdatePost(post.id, { stats })
-          setSyncResult('ok')
-        } else {
-          setSyncResult('miss') // matched URL but no stats yet
+        const stats = buildStatsPayload(post.platform, match.metrics || {})
+        const updatePayload = { stats }
+        // Pull actual publish date from Sprout if it differs significantly
+        if (match.created_time) {
+          const sproutTs = new Date(match.created_time).getTime()
+          if (isFinite(sproutTs) && sproutTs > 0) {
+            const ONE_DAY = 86400000
+            if (!post.ts || Math.abs(post.ts - sproutTs) > ONE_DAY) {
+              const d = new Date(sproutTs)
+              updatePayload.ts = sproutTs
+              updatePayload.date = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`
+            }
+          }
         }
+        await onUpdatePost(post.id, updatePayload)
+        setSyncResult('ok')
       } else { setSyncResult('miss') }
     } catch { setSyncResult('err') }
     setSyncing(false)

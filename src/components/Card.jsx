@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getAuthHeaders } from '../hooks/useUser'
 import { PLATFORMS } from '../constants'
+import { buildStatsPayload } from '../lib/statMapping'
 
 const TYPE_COLORS = {
   'Full Episode':  { color: '#39ff8c', bg: 'rgba(57,255,140,0.08)', border: 'rgba(57,255,140,0.25)' },
@@ -165,7 +166,7 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
             `created_time.in(${fmt(start)}..${fmt(now)})`,
           ],
           fields: ['perma_link', 'created_time'],
-          metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.likes'],
+          metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.views', 'lifetime.likes'],
           page: 1,
           limit: 200,
         }),
@@ -183,17 +184,24 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
         (post.url||'').includes('twitter.com') || (post.url||'').includes('x.com'))
 
       if (match) {
-        const m = match.metrics || {}
-        const stats = {}
-        const views = m['lifetime.video_views'] || 0
-        const engagement = m['lifetime.engagements'] || 0
-        const impressions = m['lifetime.impressions'] || 0
-        if (views > 0)       stats.views = String(views)
-        if (engagement > 0)  stats.engagement = String(engagement)
-        if (impressions > 0) stats.impressions = String(impressions)
-        stats.lastSynced = Date.now()
+        // Use shared platform-aware mapping
+        const stats = buildStatsPayload(post.platform, match.metrics || {})
 
         const updatePayload = { stats }
+
+        // If Sprout has a publish date that differs significantly from our stored date,
+        // update post.date and post.ts to reflect the actual publish time.
+        if (match.created_time) {
+          const sproutTs = new Date(match.created_time).getTime()
+          if (isFinite(sproutTs) && sproutTs > 0) {
+            const ONE_DAY = 86400000
+            if (!post.ts || Math.abs(post.ts - sproutTs) > ONE_DAY) {
+              const d = new Date(sproutTs)
+              updatePayload.ts = sproutTs
+              updatePayload.date = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`
+            }
+          }
+        }
 
         // For X posts, also fetch X API view count
         if (isXPost) {
@@ -211,12 +219,9 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
           } catch {}
         }
 
-        if (Object.keys(stats).length > 1 || updatePayload.videoViews) {
-          await onUpdatePost(post.id, updatePayload)
-          setSyncResult('ok')
-        } else {
-          setSyncResult('miss')
-        }
+        // We always have lastSynced + at least empty stat strings, so the call is always meaningful
+        await onUpdatePost(post.id, updatePayload)
+        setSyncResult('ok')
       } else if (isXPost) {
         // No Sprout match but still try X API
         try {

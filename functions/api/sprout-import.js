@@ -1,3 +1,5 @@
+import { buildStatsTriple } from '../_stat-mapping.js'
+
 const CORS = { 'Content-Type': 'application/json' }
 const PROFILE_IDS = [7399621, 7399622, 7399624, 7399629, 7399638, 7399761, 7400399, 7400657, 7407559]
 
@@ -204,7 +206,7 @@ export async function onRequestPost({ request, env }) {
         `created_time.in(${fmt(start)}..${fmt(now)})`,
       ],
       fields: ['perma_link', 'created_time', 'text', 'post_type', 'internal.tags.id'],
-      metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.likes'],
+      metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.views', 'lifetime.likes'],
       page,
       limit: 200,
     }
@@ -340,6 +342,7 @@ export async function onRequestPost({ request, env }) {
     const dateStr = createdAt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
     const id = `sprout_${createdAt.getTime()}_${Math.random().toString(36).slice(2, 6)}`
     const metrics = sp.metrics || {}
+    const stats = buildStatsTriple(platform, metrics)
 
     byShow[showName] = (byShow[showName] || 0) + 1
 
@@ -351,9 +354,9 @@ export async function onRequestPost({ request, env }) {
       `).bind(
         id, permalink, title, showName, platform, mediaType, episodeNumber, '',
         dateStr, createdAt.getTime(),
-        String(metrics['lifetime.video_views'] || ''),
-        String(metrics['lifetime.engagements'] || ''),
-        String(metrics['lifetime.impressions'] || ''),
+        stats.views,
+        stats.engagement,
+        stats.impressions,
         'sprout-import', Date.now()
       ).run()
       existingUrls.add(normUrl)
