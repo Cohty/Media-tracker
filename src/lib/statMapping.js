@@ -34,6 +34,17 @@ export function extractStatsFromSprout(platform, sproutMetrics) {
 
     case 'X':
     case 'Twitter':
+      // X is special: the "views" count users see on the post (the eyeball count) is what
+      // the X API returns as impressions. For video tweets, video_views also exists separately.
+      // For text tweets/threads/replies, video_views is empty and the eyeball count lives in
+      // lifetime.impressions. So: views = video_views OR impressions (whichever has a value).
+      // We still keep impressions populated for posts that have both.
+      return {
+        views: videoViews ?? impressions,
+        impressions,
+        engagement,
+      }
+
     case 'LinkedIn':
     case 'Facebook':
       // Real, separate metrics — straightforward mapping
