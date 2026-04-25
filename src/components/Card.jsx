@@ -37,47 +37,63 @@ function normalizeUrl(url) {
   } catch { return (url || '').toLowerCase().trim() }
 }
 
-function StatBadge({ icon, value, color }) {
+function StatBadge({ icon, value, color, note }) {
+  const [hovered, setHovered] = useState(false)
   if (!value) return null
   const num = Number(value)
   if (isNaN(num) || num === 0) return null
   const display = num >= 1000000 ? `${(num/1000000).toFixed(1)}M` : num >= 1000 ? `${(num/1000).toFixed(1)}k` : num.toLocaleString()
   return (
-    <span className="card-stat-badge" style={{ color, borderColor: color+'40', background: color+'10' }}>
+    <span className="card-stat-badge"
+      style={{ color, borderColor: color+'40', background: color+'10', position: note ? 'relative' : undefined, cursor: note ? 'help' : 'default' }}
+      onMouseEnter={() => note && setHovered(true)}
+      onMouseLeave={() => setHovered(false)}>
       {icon} {display}
+      {note && <span style={{ fontSize:7, marginLeft:2, opacity:0.5 }}>ⓘ</span>}
+      {hovered && note && (
+        <span className="card-stat-note-tooltip">{note}</span>
+      )}
     </span>
   )
 }
 
-function StatWithTooltip({ icon, mainVal, tooltipLabel, tooltipVal, color }) {
+function StatWithTooltip({ icon, mainVal, tooltipLabel, tooltipVal, color, note }) {
   const [hovered, setHovered] = useState(false)
   const num = Number(mainVal)
   if (!mainVal || isNaN(num) || num === 0) return null
   const fmt = n => { const v = Number(n); return v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v) }
-  const showTip = tooltipVal && Number(tooltipVal) > 0 && tooltipLabel
+  const showSourceTip = tooltipVal && Number(tooltipVal) > 0 && tooltipLabel
+  const hasAnyTip = showSourceTip || note
   return (
     <span
       className="card-stat-badge"
-      style={{ color, borderColor: color+'40', background: color+'10', position:'relative', cursor: showTip ? 'help' : 'default' }}
-      onMouseEnter={() => showTip && setHovered(true)}
+      style={{ color, borderColor: color+'40', background: color+'10', position:'relative', cursor: hasAnyTip ? 'help' : 'default' }}
+      onMouseEnter={() => hasAnyTip && setHovered(true)}
       onMouseLeave={() => setHovered(false)}>
       {icon} {fmt(mainVal)}
-      {showTip && <span style={{ fontSize:7, marginLeft:2, opacity:0.5 }}>ⓘ</span>}
-      {hovered && showTip && (
-        <span style={{
-          position:'absolute', bottom:'calc(100% + 6px)', left:'50%', transform:'translateX(-50%)',
-          background:'#1a0a2e', border:'1px solid rgba(180,78,255,0.4)', borderRadius:6,
-          padding:'5px 9px', whiteSpace:'nowrap', zIndex:999,
-          fontFamily:'DM Mono', fontSize:9, color:'var(--text2)',
-          boxShadow:'0 4px 16px rgba(0,0,0,0.4)',
-          pointerEvents:'none',
-        }}>
-          {tooltipLabel}: {fmt(tooltipVal)}
+      {hasAnyTip && <span style={{ fontSize:7, marginLeft:2, opacity:0.5 }}>ⓘ</span>}
+      {hovered && hasAnyTip && (
+        <span className="card-stat-note-tooltip">
+          {showSourceTip && <div>{tooltipLabel}: {fmt(tooltipVal)}</div>}
+          {note && <div style={{ marginTop: showSourceTip ? 4 : 0, color: 'var(--text3)', fontSize: 8.5, lineHeight: 1.35, whiteSpace: 'normal', maxWidth: 220 }}>{note}</div>}
         </span>
       )}
     </span>
   )
 }
+
+// Platform-specific notes for the views/impressions tooltips.
+// These explain quirks that would otherwise look like bugs to users.
+const VIEWS_NOTES = {
+  TikTok: 'TikTok views and impressions are the same metric — Sprout derives impressions from views.',
+  Instagram: 'Instagram impressions are now reported as views (Meta API change, Jan 2025).',
+}
+const IMPRESSIONS_NOTES = {
+  X: 'On X, impressions and views report the same number — both reflect the post’s eyeball count.',
+  Twitter: 'On X, impressions and views report the same number — both reflect the post’s eyeball count.',
+  YouTube: 'YouTube impressions aren’t available via Sprout. Enter manually from YouTube Studio if needed.',
+}
+const X_VIEWS_NOTE = 'On X, views and impressions report the same number — both reflect the post’s eyeball count.'
 
 function CardStats({ post }) {
   const isX = post.platform === 'X' || post.platform === 'Twitter' ||
@@ -95,20 +111,23 @@ function CardStats({ post }) {
   const impTooltipLabel = xImp > sImp ? 'Sprout' : xImp > 0 ? 'X API' : null
   const impTooltipVal = xImp > sImp ? sImp : xImp > 0 && xImp < sImp ? xImp : null
 
+  const viewsNote = isX ? X_VIEWS_NOTE : VIEWS_NOTES[post.platform]
+  const impNote = isX ? X_VIEWS_NOTE : IMPRESSIONS_NOTES[post.platform]
+
   return (
     <div className="card-stats-row">
       {isX && showViews > 0 ? (
         <StatWithTooltip icon="👁" mainVal={showViews} color="#00e5ff"
-          tooltipLabel={viewTooltipLabel} tooltipVal={viewTooltipVal} />
+          tooltipLabel={viewTooltipLabel} tooltipVal={viewTooltipVal} note={viewsNote} />
       ) : (
-        <StatBadge icon="👁" value={post.stats?.views} color="#00e5ff" />
+        <StatBadge icon="👁" value={post.stats?.views} color="#00e5ff" note={viewsNote} />
       )}
       <StatBadge icon="💬" value={post.stats?.engagement} color="#ff2d78" />
       {isX && showImp > 0 ? (
         <StatWithTooltip icon="📢" mainVal={showImp} color="#b44eff"
-          tooltipLabel={impTooltipLabel} tooltipVal={impTooltipVal} />
+          tooltipLabel={impTooltipLabel} tooltipVal={impTooltipVal} note={impNote} />
       ) : (
-        <StatBadge icon="📢" value={post.stats?.impressions} color="#b44eff" />
+        <StatBadge icon="📢" value={post.stats?.impressions} color="#b44eff" note={impNote} />
       )}
     </div>
   )

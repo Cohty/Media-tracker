@@ -2038,3 +2038,24 @@ body {
   .post-detail-rate { flex-wrap: wrap; }
   .post-detail-rate-note { margin-left: 0; width: 100%; }
 }
+
+/* ── CARD STAT NOTE TOOLTIP (platform quirks) ── */
+.card-stat-note-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a0a2e;
+  border: 1px solid rgba(180, 78, 255, 0.4);
+  border-radius: 6px;
+  padding: 6px 10px;
+  z-index: 999;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--text2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  min-width: 140px;
+  text-align: left;
+  white-space: normal;
+}

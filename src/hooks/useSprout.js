@@ -106,15 +106,19 @@ export function useSprout() {
 
     onProgress?.(`Matching ${allPosts.length} Sprout posts to your tracker…`)
 
-    // Build normalized URL → raw metrics map.
+    // Build normalized URL → { metrics, createdTime } map.
     // We store raw metrics here (not mapped stats) because mapping requires the post's
-    // platform, which we only have during the match loop below.
-    const metricsMap = {}
+    // platform, which we only have during the match loop below. We also capture created_time
+    // so we can update the post's publish date to the actual Sprout-reported date.
+    const sproutDataMap = {}
     allPosts.forEach(sp => {
       const permalink = sp.perma_link || sp.permalink || ''
       if (permalink) {
         const normUrl = normalizeUrl(permalink)
-        metricsMap[normUrl] = sp.metrics || {}
+        sproutDataMap[normUrl] = {
+          metrics: sp.metrics || {},
+          createdTime: sp.created_time || null,
+        }
       }
     })
 
@@ -124,10 +128,30 @@ export function useSprout() {
       // Use syncUrl if set, otherwise fall back to logged url
       const urlToMatch = post.syncUrl?.trim() || post.url || ''
       const normUrl = normalizeUrl(urlToMatch)
-      const rawMetrics = metricsMap[normUrl]
-      if (rawMetrics) {
-        const stats = buildStatsPayload(post.platform, rawMetrics)
-        results.push({ id: post.id, stats, post })
+      const sproutData = sproutDataMap[normUrl]
+      if (sproutData) {
+        const stats = buildStatsPayload(post.platform, sproutData.metrics)
+        const result = { id: post.id, stats, post }
+
+        // If Sprout has a publish date and it differs from what we have stored, include it
+        // in the result so the sync caller can update the post's date/ts.
+        if (sproutData.createdTime) {
+          const sproutTs = new Date(sproutData.createdTime).getTime()
+          if (isFinite(sproutTs) && sproutTs > 0) {
+            // Only flag for update if the stored ts differs by more than 1 day —
+            // accounts for tz/rounding noise without needlessly re-writing every post.
+            const ONE_DAY = 86400000
+            if (!post.ts || Math.abs(post.ts - sproutTs) > ONE_DAY) {
+              const d = new Date(sproutTs)
+              result.dateUpdate = {
+                ts: sproutTs,
+                date: `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`,
+              }
+            }
+          }
+        }
+
+        results.push(result)
       }
     }
 

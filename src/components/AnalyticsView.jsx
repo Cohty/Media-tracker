@@ -122,7 +122,15 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone, onPos
     setSyncStatus('syncing'); setSyncMsg('Connecting to Sprout Social…')
     try {
       const results = await syncPostStats(posts, msg => setSyncMsg(msg))
-      for (const { id, stats } of results) await onUpdatePost(id, { stats })
+      for (const { id, stats, dateUpdate } of results) {
+        const updates = { stats }
+        // If Sprout returned a more accurate publish date, also update post.date and post.ts
+        if (dateUpdate) {
+          updates.date = dateUpdate.date
+          updates.ts = dateUpdate.ts
+        }
+        await onUpdatePost(id, updates)
+      }
       setLastSynced(new Date().toLocaleTimeString())
       setSyncStatus('done'); setSyncMsg(`${results.length} posts synced`)
       setTimeout(() => setSyncStatus(null), 5000)
