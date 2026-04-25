@@ -978,6 +978,9 @@ body {
   border: 5px solid transparent;
   border-top-color: rgba(180,78,255,0.5);
 }
+/* Override .stat-card's overflow:hidden — otherwise the tooltip gets clipped
+   inside the card boundary and is invisible no matter where it's positioned. */
+.stat-card--hoverable { overflow: visible !important; }
 .stat-card--hoverable:hover .stat-card-tooltip { display: block; }
 
 /* ── BREAKDOWN VARIANT (multi-row platform list) ── */
@@ -1664,22 +1667,46 @@ body {
 }
 
 /* ========================================================================
-   ANALYTICS SEARCH BAR
+   ANALYTICS TABLE TOOLBAR (search + sort, sits between titlebar and table)
    ======================================================================== */
+.analytics-table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.18);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.analytics-table-toolbar-sort {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
 .analytics-search {
+  flex: 1;
+  min-width: 240px;
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: linear-gradient(90deg, rgba(180,78,255,0.06), rgba(0,229,255,0.04));
-  border: 1px solid var(--border2);
+  gap: 8px;
+  padding: 5px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--win-out);
+  transition: border-color 0.15s, background 0.15s;
+}
+.analytics-search:focus-within {
+  border-color: rgba(0,229,255,0.4);
+  background: rgba(0,229,255,0.04);
+  box-shadow: 0 0 8px rgba(0,229,255,0.12);
 }
 .analytics-search-icon {
-  font-size: 13px;
-  opacity: 0.65;
+  font-size: 12px;
+  opacity: 0.6;
   flex-shrink: 0;
 }
 .analytics-search-input {
@@ -1688,10 +1715,10 @@ body {
   border: none;
   outline: none;
   font-family: 'DM Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text);
   letter-spacing: 0.3px;
-  padding: 4px 0;
+  padding: 3px 0;
   min-width: 0;
 }
 .analytics-search-input::placeholder {
@@ -1701,10 +1728,10 @@ body {
   background: rgba(255,45,120,0.12);
   border: 1px solid rgba(255,45,120,0.3);
   color: var(--pink);
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 3px;
-  font-size: 14px;
+  font-size: 13px;
   font-family: 'DM Mono', monospace;
   cursor: pointer;
   display: flex;
@@ -1712,6 +1739,7 @@ body {
   justify-content: center;
   flex-shrink: 0;
   transition: all 0.15s;
+  line-height: 1;
 }
 .analytics-search-clear:hover {
   background: rgba(255,45,120,0.22);
@@ -1722,7 +1750,7 @@ body {
   color: var(--cyan);
   background: rgba(0,229,255,0.08);
   border: 1px solid rgba(0,229,255,0.25);
-  padding: 4px 8px;
+  padding: 3px 7px;
   border-radius: 3px;
   letter-spacing: 0.3px;
   flex-shrink: 0;

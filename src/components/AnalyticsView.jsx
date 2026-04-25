@@ -172,27 +172,6 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone, onPos
   return (
     <div className="analytics-wrapper">
 
-      {/* ── SEARCH BAR ── */}
-      <div className="analytics-search">
-        <span className="analytics-search-icon">🔍</span>
-        <input
-          type="text"
-          className="analytics-search-input"
-          placeholder="Search posts by title, show, platform, episode, URL…"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          autoComplete="off"
-        />
-        {searchQuery && (
-          <button className="analytics-search-clear" onClick={() => setSearchQuery('')}>×</button>
-        )}
-        {searchQuery && (
-          <span className="analytics-search-count">
-            {filteredPosts.length} match{filteredPosts.length === 1 ? '' : 'es'}
-          </span>
-        )}
-      </div>
-
       {/* ── FILTER BAR ── */}
       <div className="win95-window">
         <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001840, #003080)' }}>
@@ -352,18 +331,44 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone, onPos
 
       {/* ── TABLE ── */}
       <div className="win95-window">
-        <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001a20, #003040)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #001a20, #003040)' }}>
           <span className="win95-title">📋 POST STATS — synced from Sprout or edit manually</span>
-          <div style={{ display:'flex', gap:5, marginRight:8 }}>
+        </div>
+
+        {/* Toolbar: search + sort, sits right above the table for fast scanning */}
+        <div className="analytics-table-toolbar">
+          <div className="analytics-search">
+            <span className="analytics-search-icon">🔍</span>
+            <input
+              type="text"
+              className="analytics-search-input"
+              placeholder="Search title, show, platform, episode, URL…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              autoComplete="off"
+            />
+            {searchQuery && (
+              <>
+                <span className="analytics-search-count">
+                  {filteredPosts.length} match{filteredPosts.length === 1 ? '' : 'es'}
+                </span>
+                <button className="analytics-search-clear" onClick={() => setSearchQuery('')}>×</button>
+              </>
+            )}
+          </div>
+
+          <div className="analytics-table-toolbar-sort">
+            <span className="filter-label" style={{ marginRight: 4 }}>SORT</span>
             {SORT_OPTIONS.map(s => (
               <button key={s.id} className={`metric-btn${sortBy === s.id ? ' active' : ''}`}
                 style={sortBy === s.id
-                  ? { color:'var(--yellow)', borderColor:'rgba(240,224,64,0.4)', fontSize:8, padding:'2px 8px' }
-                  : { fontSize:8, padding:'2px 8px' }}
+                  ? { color: 'var(--yellow)', borderColor: 'rgba(240,224,64,0.4)' }
+                  : {}}
                 onClick={() => setSortBy(s.id)}>{s.label}</button>
             ))}
           </div>
         </div>
+
         <div className="analytics-table-wrap">
           <div className="analytics-table-header" style={{ gridTemplateColumns:'28px 2fr 1fr 1fr 100px 100px 100px' }}>
             <div><input type="checkbox"
