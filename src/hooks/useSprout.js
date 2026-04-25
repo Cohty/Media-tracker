@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getAuthHeaders } from './useUser'
+import { buildStatsPayload } from '../lib/statMapping'
 
 async function sproutGet(path) {
   const res = await fetch(`/api/sprout?path=${encodeURIComponent(path)}`)
@@ -93,7 +94,7 @@ export function useSprout() {
       const data = await sproutPost('analytics/posts', {
         filters: [profileFilter, dateFilter],
         fields: ['perma_link', 'created_time'],
-        metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.likes'],
+        metrics: ['lifetime.impressions', 'lifetime.engagements', 'lifetime.video_views', 'lifetime.views', 'lifetime.likes'],
         page,
         limit: 200,
       })
@@ -105,29 +106,29 @@ export function useSprout() {
 
     onProgress?.(`Matching ${allPosts.length} Sprout posts to your tracker…`)
 
-    // Build normalized URL → stats map
-    const statsMap = {}
+    // Build normalized URL → raw metrics map.
+    // We store raw metrics here (not mapped stats) because mapping requires the post's
+    // platform, which we only have during the match loop below.
+    const metricsMap = {}
     allPosts.forEach(sp => {
       const permalink = sp.perma_link || sp.permalink || ''
-      const metrics = sp.metrics || {}
       if (permalink) {
         const normUrl = normalizeUrl(permalink)
-        statsMap[normUrl] = {
-          views:       String(metrics['lifetime.video_views'] || metrics['lifetime.impressions'] || ''),
-          engagement:  String(metrics['lifetime.engagements'] || ''),
-          impressions: String(metrics['lifetime.impressions'] || ''),
-          lastSynced:  Date.now(),
-        }
+        metricsMap[normUrl] = sp.metrics || {}
       }
     })
 
-    // Match our stored posts using normalized URLs
+    // Match our stored posts using normalized URLs, applying platform-aware mapping
     const results = []
     for (const post of posts) {
       // Use syncUrl if set, otherwise fall back to logged url
       const urlToMatch = post.syncUrl?.trim() || post.url || ''
       const normUrl = normalizeUrl(urlToMatch)
-      if (statsMap[normUrl]) results.push({ id: post.id, stats: statsMap[normUrl], post })
+      const rawMetrics = metricsMap[normUrl]
+      if (rawMetrics) {
+        const stats = buildStatsPayload(post.platform, rawMetrics)
+        results.push({ id: post.id, stats, post })
+      }
     }
 
     onProgress?.(`Matched ${results.length} of ${posts.length} posts`)

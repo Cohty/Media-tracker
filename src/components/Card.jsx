@@ -166,7 +166,7 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
       if (match) {
         const m = match.metrics || {}
         const stats = {}
-        const views = m['lifetime.video_views'] || m['lifetime.impressions'] || 0
+        const views = m['lifetime.video_views'] || 0
         const engagement = m['lifetime.engagements'] || 0
         const impressions = m['lifetime.impressions'] || 0
         if (views > 0)       stats.views = String(views)
