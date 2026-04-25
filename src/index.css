@@ -981,14 +981,28 @@ body {
 .stat-card--hoverable:hover .stat-card-tooltip { display: block; }
 
 /* ── BREAKDOWN VARIANT (multi-row platform list) ── */
+/* Renders BELOW the card, since stat cards sit just under the sticky topbar
+   and the default tooltip position would render off-screen. */
 .stat-card-tooltip--breakdown {
+  bottom: auto;
+  top: calc(100% + 8px);
   padding: 9px 12px 8px;
-  min-width: 200px;
+  min-width: 220px;
+  z-index: 1000;
   background: rgba(15,12,30,0.96);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(180,78,255,0.45);
   box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 14px rgba(180,78,255,0.12);
+}
+/* Override the base ::after arrow (which points down from above)
+   with one that points up at the card from below. */
+.stat-card-tooltip--breakdown::after {
+  top: -10px;
+  bottom: auto;
+  border: 5px solid transparent;
+  border-top-color: transparent;
+  border-bottom-color: rgba(180,78,255,0.5);
 }
 .stat-card-tooltip--breakdown .tooltip-total {
   font-family: 'VT323', monospace;
