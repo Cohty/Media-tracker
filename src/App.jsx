@@ -19,6 +19,7 @@ import InboxView from './components/InboxView'
 import HelpView from './components/HelpView'
 import LeaderboardView from './components/LeaderboardView'
 import CompareModal from './components/CompareModal'
+import PostDetailModal from './components/PostDetailModal'
 
 export default function App() {
   const { user } = useUser()
@@ -34,6 +35,7 @@ export default function App() {
   const [summaryLogId, setSummaryLogId] = useState(null)
   const [boardSearch, setBoardSearch] = useState('')
   const [comparePair, setComparePair] = useState(null)
+  const [detailPost, setDetailPost] = useState(null)
 
 
 
@@ -197,12 +199,14 @@ export default function App() {
           <div className="board-scroll-wrapper">
             <Board posts={boardPosts} onDelete={handleDeletePost} onMove={setMovingPost}
               highlightedPostId={highlightedPostId} selectedIds={selectedIds} onToggleSelect={toggleSelect}
-              onUpdatePost={handleUpdatePost} hiddenCols={hiddenCols} onToggleHiddenCol={toggleHiddenCol} />
+              onUpdatePost={handleUpdatePost} hiddenCols={hiddenCols} onToggleHiddenCol={toggleHiddenCol}
+              onClick={post => setDetailPost(post)} />
           </div>
         </>
       )}
       {activeView === 'analytics' && <AnalyticsView posts={posts} onUpdatePost={handleUpdatePost}
-        onImportDone={logId => setSummaryLogId(logId)} />}
+        onImportDone={logId => setSummaryLogId(logId)}
+        onPostClick={post => setDetailPost(post)} />}
       {activeView === 'podcast'   && <PodcastView />}
       {activeView === 'inbox'     && <InboxView posts={posts} onUpdatePost={handleUpdatePost} onDeletePost={handleDeletePost} />}
       {activeView === 'leaderboard' && <LeaderboardView posts={posts} />}
@@ -221,6 +225,10 @@ export default function App() {
       <ImportSummaryModal logId={summaryLogId} isOpen={!!summaryLogId} onClose={() => setSummaryLogId(null)} />
       <CompareModal isOpen={!!comparePair} postA={comparePair?.[0]} postB={comparePair?.[1]}
         onClose={() => setComparePair(null)} />
+      <PostDetailModal isOpen={!!detailPost} post={detailPost}
+        onClose={() => setDetailPost(null)}
+        onEdit={post => setMovingPost(post)}
+        onDelete={handleDeletePost} />
     </>
   )
 }

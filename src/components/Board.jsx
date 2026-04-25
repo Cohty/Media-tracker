@@ -1,7 +1,7 @@
 import { SHOWS, UNASSIGNED } from '../constants'
 import Column from './Column'
 
-export default function Board({ posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onUpdatePost, hiddenCols, onToggleHiddenCol }) {
+export default function Board({ posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onUpdatePost, hiddenCols, onToggleHiddenCol, onClick }) {
   const unassignedPosts = posts.filter(p => !SHOWS.find(s => s.name === p.show))
 
   const allCols = [
@@ -20,14 +20,16 @@ export default function Board({ posts, onDelete, onMove, highlightedPostId, sele
             onDelete={onDelete} onMove={onMove}
             highlightedPostId={highlightedPostId}
             selectedIds={selectedIds} onToggleSelect={onToggleSelect}
-            onHide={() => onToggleHiddenCol(show.name)} onUpdatePost={onUpdatePost} />
+            onHide={() => onToggleHiddenCol(show.name)} onUpdatePost={onUpdatePost}
+            onClick={onClick} />
         ))}
         {unassignedPosts.length > 0 && !hiddenCols.has('Unassigned') && (
           <Column show={UNASSIGNED} posts={unassignedPosts}
             onDelete={onDelete} onMove={onMove}
             highlightedPostId={highlightedPostId}
             selectedIds={selectedIds} onToggleSelect={onToggleSelect}
-            onHide={() => onToggleHiddenCol('Unassigned')} onUpdatePost={onUpdatePost} />
+            onHide={() => onToggleHiddenCol('Unassigned')} onUpdatePost={onUpdatePost}
+            onClick={onClick} />
         )}
       </div>
     </div>

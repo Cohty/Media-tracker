@@ -20,9 +20,10 @@ const SORT_OPTIONS = [
   { id: 'impressions', label: 'Impressions' },
 ]
 
-export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
+export default function AnalyticsView({ posts, onUpdatePost, onImportDone, onPostClick }) {
   const [filterShow, setFilterShow] = useState('all')
   const [filterType, setFilterType] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [activeMetrics, setActiveMetrics] = useState(['views', 'engagement', 'impressions'])
   const [sortBy, setSortBy] = useState('date')
   const [syncStatus, setSyncStatus] = useState(null)
@@ -82,12 +83,21 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
     })
   }, [posts, selectedRange])
 
-  // Then show/type filters + sort for the table
+  // Then show/type/search filters + sort for the table
   const filteredPosts = useMemo(() => {
-    let result = rangedPosts.filter(p =>
-      (filterShow === 'all' || p.show === filterShow) &&
-      (filterType === 'all' || p.mediaType === filterType)
-    )
+    const q = searchQuery.trim().toLowerCase()
+    let result = rangedPosts.filter(p => {
+      if (filterShow !== 'all' && p.show !== filterShow) return false
+      if (filterType !== 'all' && p.mediaType !== filterType) return false
+      if (q) {
+        const haystack = [
+          p.title, p.show, p.platform, p.mediaType, p.episodeNumber,
+          p.clipIndex, p.url, p.notes,
+        ].filter(Boolean).join(' ').toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
+      return true
+    })
     result = [...result].sort((a, b) => {
       if (sortBy === 'date') return (b.ts || 0) - (a.ts || 0)
       if (sortBy === 'episode') {
@@ -100,7 +110,7 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
       return vb - va
     })
     return result
-  }, [rangedPosts, filterShow, filterType, sortBy])
+  }, [rangedPosts, filterShow, filterType, searchQuery, sortBy])
 
   // Chart source: selection wins over filters
   const chartPosts = useMemo(() => {
@@ -152,6 +162,27 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
 
   return (
     <div className="analytics-wrapper">
+
+      {/* ── SEARCH BAR ── */}
+      <div className="analytics-search">
+        <span className="analytics-search-icon">🔍</span>
+        <input
+          type="text"
+          className="analytics-search-input"
+          placeholder="Search posts by title, show, platform, episode, URL…"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          autoComplete="off"
+        />
+        {searchQuery && (
+          <button className="analytics-search-clear" onClick={() => setSearchQuery('')}>×</button>
+        )}
+        {searchQuery && (
+          <span className="analytics-search-count">
+            {filteredPosts.length} match{filteredPosts.length === 1 ? '' : 'es'}
+          </span>
+        )}
+      </div>
 
       {/* ── FILTER BAR ── */}
       <div className="win95-window">
@@ -247,7 +278,7 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
             {selEng > 0   && <span style={{ fontFamily:'VT323', fontSize:22, color:'#ff2d78', textShadow:'0 0 8px #ff2d78', lineHeight:1 }}>💬 {fmtN(selEng)}</span>}
             {selImp > 0   && <span style={{ fontFamily:'VT323', fontSize:22, color:'#b44eff', textShadow:'0 0 8px #b44eff', lineHeight:1 }}>📢 {fmtN(selImp)}</span>}
           </div>
-          <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)' }}>↓ chart shows selected posts</span>
+          <span style={{ fontFamily:'DM Mono', fontSize:8, color:'var(--text3)' }}>↓ chart shows selected posts · shift-click rows to select</span>
           <button onClick={clearSelection}
             style={{ marginLeft:'auto', fontFamily:'DM Mono', fontSize:9, color:'var(--text3)',
               background:'none', border:'1px solid var(--border)', borderRadius:4,
@@ -349,7 +380,17 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
                   transition: 'background 0.15s',
                 }}
                 onMouseEnter={() => setHoveredKey(dayKey)}
-                onClick={() => toggleSelect(post.id)}>
+                onClick={e => {
+                  if (e.shiftKey) {
+                    e.preventDefault()
+                    toggleSelect(post.id)
+                  } else if (onPostClick) {
+                    onPostClick(post)
+                  } else {
+                    toggleSelect(post.id)
+                  }
+                }}
+                title="Click to open · Shift-click to select for chart">
                 <div className="analytics-cell" onClick={e => e.stopPropagation()}>
                   <input type="checkbox" checked={selectedIds.has(post.id)}
                     onChange={() => toggleSelect(post.id)} style={{ cursor:'pointer' }} />

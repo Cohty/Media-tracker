@@ -114,7 +114,7 @@ function CardStats({ post }) {
   )
 }
 
-export default function Card({ post, onDelete, onMove, highlighted, selected, onToggleSelect, onUpdatePost }) {
+export default function Card({ post, onDelete, onMove, highlighted, selected, onToggleSelect, onUpdatePost, onClick }) {
   const [confirming, setConfirming] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState(null) // 'ok' | 'miss' | 'err'
@@ -228,8 +228,15 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
   }
 
   return (
-    <div className={`card${highlighted ? ' card--highlighted' : ''}${selected ? ' selected' : ''}`}
-      onClick={e => { if (e.shiftKey && onToggleSelect) { e.preventDefault(); onToggleSelect(post.id) } }}>
+    <div className={`card${highlighted ? ' card--highlighted' : ''}${selected ? ' selected' : ''}${onClick ? ' card--clickable' : ''}`}
+      onClick={e => {
+        if (e.shiftKey && onToggleSelect) {
+          e.preventDefault()
+          onToggleSelect(post.id)
+          return
+        }
+        if (onClick && !confirming) onClick(post)
+      }}>
 
       {onToggleSelect && (
         <div className={`card-checkbox${selected ? ' checked' : ''}`}
@@ -250,7 +257,7 @@ export default function Card({ post, onDelete, onMove, highlighted, selected, on
         <CardStats post={post} />
       )}
 
-      <div className="card-footer">
+      <div className="card-footer" onClick={e => e.stopPropagation()}>
         <span className="card-date">{post.date}</span>
         <div className="card-actions">
           <a className="act-btn" href={post.url} target="_blank" rel="noreferrer">Open ↗</a>

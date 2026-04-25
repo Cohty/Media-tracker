@@ -37,7 +37,7 @@ function normalizeUrl(url) {
   } catch { return (url || '').toLowerCase().trim() }
 }
 
-function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect, onUpdatePost }) {
+function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect, onUpdatePost, onClick }) {
   const [confirming, setConfirming] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState(null)
@@ -91,8 +91,16 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
   }
 
   return (
-    <div className={`ep-post-row${highlighted ? ' ep-post-row--highlighted' : ''}${selected ? ' selected' : ''}`}
-      style={{ position: 'relative' }}>
+    <div className={`ep-post-row${highlighted ? ' ep-post-row--highlighted' : ''}${selected ? ' selected' : ''}${onClick ? ' card--clickable' : ''}`}
+      style={{ position: 'relative' }}
+      onClick={e => {
+        if (e.shiftKey && onToggleSelect) {
+          e.preventDefault()
+          onToggleSelect(post.id)
+          return
+        }
+        if (onClick && !confirming) onClick(post)
+      }}>
 
       {/* Checkbox */}
       {onToggleSelect && (
@@ -128,7 +136,7 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
         )
       })()}
 
-      <div className="card-footer">
+      <div className="card-footer" onClick={e => e.stopPropagation()}>
         <span className="card-date">{post.date}</span>
         <div className="card-actions" style={{ opacity: 1 }}>
           <a className="act-btn" href={post.url} target="_blank" rel="noreferrer">Open ↗</a>
@@ -157,7 +165,7 @@ function PostRow({ post, onDelete, onMove, highlighted, selected, onToggleSelect
   )
 }
 
-export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onUpdatePost }) {
+export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDelete, onMove, highlightedPostId, selectedIds, onToggleSelect, onUpdatePost, onClick }) {
   const containsHighlighted = posts.some(p => p.id === highlightedPostId)
   const [expanded, setExpanded] = useState(false)
 
@@ -261,7 +269,8 @@ export default function EpisodeGroup({ groupKey, label, isEpisode, posts, onDele
               <PostRow post={post} onDelete={onDelete} onMove={onMove}
                 highlighted={post.id === highlightedPostId}
                 selected={selectedIds?.has(post.id)}
-                onToggleSelect={onToggleSelect} onUpdatePost={onUpdatePost} />
+                onToggleSelect={onToggleSelect} onUpdatePost={onUpdatePost}
+                onClick={onClick} />
             </div>
           ))}
         </div>
