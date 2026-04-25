@@ -267,13 +267,13 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
           onHoverDay={setHoveredKey}
         />
 
-        <div className="win95-window" style={{ flex: 1, minWidth: 0 }}>
+        <div className="win95-window analytics-chart-pane">
           <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #1a0040, #4a0090)' }}>
             <span className="win95-title">
               📈 {hasSelection ? `PERFORMANCE — ${selectedIds.size} SELECTED` : 'PERFORMANCE OVER TIME'}
             </span>
           </div>
-          <div style={{ padding: '12px 14px 8px' }}>
+          <div className="analytics-chart-body">
             <AnalyticsAreaChart
               posts={chartPosts}
               activeMetrics={activeMetrics}
@@ -282,10 +282,7 @@ export default function AnalyticsView({ posts, onUpdatePost, onImportDone }) {
               onHoverDay={setHoveredKey}
             />
             {/* Inline legend / toggles below chart */}
-            <div style={{
-              display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap',
-              marginTop: 6, paddingTop: 10, borderTop: '1px solid var(--border)',
-            }}>
+            <div className="analytics-chart-chips">
               {METRICS.map(m => {
                 const on = activeMetrics.includes(m.id)
                 return (

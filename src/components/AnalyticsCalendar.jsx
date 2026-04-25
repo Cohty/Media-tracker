@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { SHOWS, UNASSIGNED } from '../constants'
 
 // Parse post.date "MM/DD/YYYY" → "YYYY-MM-DD" key (local timezone, stable for grouping)
 export function postDayKey(post) {
@@ -25,6 +26,10 @@ function keyToDate(key) {
 
 const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
 const DAY_LABELS = ['S','M','T','W','T','F','S']
+const SHOW_COLOR = Object.fromEntries(SHOWS.map(s => [s.name, s.hex]))
+SHOW_COLOR[UNASSIGNED.name] = UNASSIGNED.hex
+
+const MAX_DOTS_PER_CELL = 6
 
 export default function AnalyticsCalendar({
   posts,
@@ -37,19 +42,29 @@ export default function AnalyticsCalendar({
     const d = new Date()
     return { year: d.getFullYear(), month: d.getMonth() }
   })
-  const [dragAnchor, setDragAnchor] = useState(null)
-  const [dragEnd, setDragEnd] = useState(null)
-  const gridRef = useRef(null)
 
-  // Post density per day + top post per day
+  // pendingStart: when user has clicked once and we're awaiting the second click.
+  // null when no pending state.
+  const [pendingStart, setPendingStart] = useState(null)
+  const [previewEnd, setPreviewEnd] = useState(null)
+
+  // Per-day data: count, top shows by count
   const dayData = useMemo(() => {
     const map = {}
     for (const p of posts) {
       const key = postDayKey(p)
       if (!key) continue
-      if (!map[key]) map[key] = { count: 0, posts: [] }
+      if (!map[key]) map[key] = { count: 0, posts: [], byShow: {} }
       map[key].count++
       map[key].posts.push(p)
+      const show = p.show || UNASSIGNED.name
+      map[key].byShow[show] = (map[key].byShow[show] || 0) + 1
+    }
+    // Sort show buckets descending so dots reflect distribution accurately
+    for (const k in map) {
+      map[k].showOrder = Object.entries(map[k].byShow)
+        .sort((a, b) => b[1] - a[1])
+        .map(([show, c]) => ({ show, count: c }))
     }
     return map
   }, [posts])
@@ -60,25 +75,21 @@ export default function AnalyticsCalendar({
     return max || 1
   }, [dayData])
 
-  // Build 6x7 grid for current view month
   const cells = useMemo(() => {
     const first = new Date(viewMonth.year, viewMonth.month, 1)
-    const startDay = first.getDay() // 0 = Sun
+    const startDay = first.getDay()
     const daysInMonth = new Date(viewMonth.year, viewMonth.month+1, 0).getDate()
     const prevMonthDays = new Date(viewMonth.year, viewMonth.month, 0).getDate()
     const out = []
-    // Leading days (previous month)
     for (let i = startDay - 1; i >= 0; i--) {
       const day = prevMonthDays - i
       const d = new Date(viewMonth.year, viewMonth.month - 1, day)
       out.push({ date: d, key: dateToKey(d), outside: true })
     }
-    // Current month
     for (let day = 1; day <= daysInMonth; day++) {
       const d = new Date(viewMonth.year, viewMonth.month, day)
       out.push({ date: d, key: dateToKey(d), outside: false })
     }
-    // Trailing to fill 6 weeks (42 cells)
     while (out.length < 42) {
       const last = out[out.length-1].date
       const d = new Date(last.getFullYear(), last.getMonth(), last.getDate()+1)
@@ -89,15 +100,15 @@ export default function AnalyticsCalendar({
 
   const todayKey = dateToKey(new Date())
 
-  // Compute active range: drag takes precedence, otherwise selectedRange
+  // Active range visualization: pending preview takes precedence over selectedRange
   const activeRange = useMemo(() => {
-    if (dragAnchor) {
-      const a = dragEnd || dragAnchor
-      const [start, end] = [dragAnchor, a].sort()
-      return { start, end }
+    if (pendingStart) {
+      const other = previewEnd || pendingStart
+      const [start, end] = [pendingStart, other].sort()
+      return { start, end, isPending: true }
     }
-    return selectedRange
-  }, [dragAnchor, dragEnd, selectedRange])
+    return selectedRange ? { ...selectedRange, isPending: false } : null
+  }, [pendingStart, previewEnd, selectedRange])
 
   function isInRange(key) {
     if (!activeRange) return false
@@ -106,37 +117,42 @@ export default function AnalyticsCalendar({
   function isRangeStart(key) { return activeRange && key === activeRange.start }
   function isRangeEnd(key) { return activeRange && key === activeRange.end }
 
-  function handleMouseDown(key) {
-    setDragAnchor(key)
-    setDragEnd(key)
-  }
-  function handleMouseEnter(key) {
-    onHoverDay?.(key)
-    if (dragAnchor) setDragEnd(key)
-  }
-  function handleMouseUp(key) {
-    if (!dragAnchor) return
-    const [start, end] = [dragAnchor, key].sort()
-    onChangeRange?.({ start, end })
-    setDragAnchor(null)
-    setDragEnd(null)
+  function handleClick(key) {
+    if (!pendingStart) {
+      // First click → mark as pending start, immediately filter to single day
+      setPendingStart(key)
+      setPreviewEnd(key)
+      onChangeRange?.({ start: key, end: key })
+    } else {
+      // Second click → complete the range
+      const [start, end] = [pendingStart, key].sort()
+      onChangeRange?.({ start, end })
+      setPendingStart(null)
+      setPreviewEnd(null)
+    }
   }
 
-  // Cancel drag if mouse leaves grid & releases
+  function handleMouseEnter(key) {
+    onHoverDay?.(key)
+    if (pendingStart) setPreviewEnd(key)
+  }
+
+  function handleMouseLeave() {
+    onHoverDay?.(null)
+    if (pendingStart) setPreviewEnd(pendingStart)
+  }
+
+  // ESC to cancel pending selection
   useEffect(() => {
-    function onUp() {
-      if (dragAnchor && dragEnd) {
-        const [start, end] = [dragAnchor, dragEnd].sort()
-        onChangeRange?.({ start, end })
+    function onKey(e) {
+      if (e.key === 'Escape' && pendingStart) {
+        setPendingStart(null)
+        setPreviewEnd(null)
       }
-      setDragAnchor(null)
-      setDragEnd(null)
     }
-    if (dragAnchor) {
-      window.addEventListener('mouseup', onUp)
-      return () => window.removeEventListener('mouseup', onUp)
-    }
-  }, [dragAnchor, dragEnd, onChangeRange])
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [pendingStart])
 
   function nav(delta) {
     setViewMonth(v => {
@@ -154,18 +170,25 @@ export default function AnalyticsCalendar({
 
   function clearRange() {
     onChangeRange?.(null)
+    setPendingStart(null)
+    setPreviewEnd(null)
   }
 
-  // Quick-range helpers
   function applyPreset(days) {
     const end = new Date()
     const start = new Date()
     start.setDate(start.getDate() - days + 1)
     onChangeRange?.({ start: dateToKey(start), end: dateToKey(end) })
     setViewMonth({ year: end.getFullYear(), month: end.getMonth() })
+    setPendingStart(null)
+    setPreviewEnd(null)
   }
 
   const rangeSummary = useMemo(() => {
+    if (pendingStart && !previewEnd) {
+      const d = keyToDate(pendingStart)
+      return `Pick end date · started ${MONTH_NAMES[d.getMonth()].slice(0,3).toLowerCase().replace(/^./,c=>c.toUpperCase())} ${d.getDate()}`
+    }
     if (!selectedRange) return 'All time'
     const s = keyToDate(selectedRange.start)
     const e = keyToDate(selectedRange.end)
@@ -175,7 +198,7 @@ export default function AnalyticsCalendar({
     const currentYear = new Date().getFullYear()
     if (sameYear && s.getFullYear() === currentYear) return `${fmt(s)} → ${fmt(e)}`
     return `${fmt(s)}, ${s.getFullYear()} → ${fmt(e)}, ${e.getFullYear()}`
-  }, [selectedRange])
+  }, [selectedRange, pendingStart, previewEnd])
 
   const postsInRange = useMemo(() => {
     if (!selectedRange) return posts.length
@@ -185,35 +208,30 @@ export default function AnalyticsCalendar({
     }).length
   }, [posts, selectedRange])
 
+  const hintText = pendingStart
+    ? '↳ Click another day to set the end (Esc to cancel)'
+    : 'Click a day to filter · click a second day to set a range'
+
   return (
     <div className="win95-window analytics-calendar">
       <div className="win95-titlebar" style={{ background: 'linear-gradient(90deg, #2a0040, #4a0090)' }}>
         <span className="win95-title">◫ DATE RANGE — {rangeSummary}</span>
       </div>
 
-      <div style={{ padding: '10px 12px 12px' }}>
-        {/* Month nav */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 8,
-        }}>
+      <div className="cal-body">
+        <div className="cal-month-nav">
           <button className="cal-nav-btn" onClick={() => nav(-1)} aria-label="Previous month">‹</button>
-          <div style={{
-            fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text)',
-            letterSpacing: '1.2px', fontWeight: 600,
-          }}>
+          <div className="cal-month-label">
             {MONTH_NAMES[viewMonth.month]} {viewMonth.year}
           </div>
           <button className="cal-nav-btn" onClick={() => nav(1)} aria-label="Next month">›</button>
         </div>
 
-        {/* Day labels */}
         <div className="cal-day-labels">
           {DAY_LABELS.map((l, i) => <div key={i}>{l}</div>)}
         </div>
 
-        {/* Grid */}
-        <div className="cal-grid" ref={gridRef} onMouseLeave={() => onHoverDay?.(null)}>
+        <div className="cal-grid" onMouseLeave={handleMouseLeave}>
           {cells.map(cell => {
             const dat = dayData[cell.key]
             const count = dat?.count || 0
@@ -223,55 +241,94 @@ export default function AnalyticsCalendar({
             const isEnd = isRangeEnd(cell.key)
             const isToday = cell.key === todayKey
             const isHovered = hoveredKey === cell.key
+            const isPendingStart = pendingStart === cell.key
+
+            // Build dot list — one per post up to MAX_DOTS_PER_CELL, in show-color order
+            const dots = []
+            if (dat?.showOrder) {
+              for (const { show, count: c } of dat.showOrder) {
+                for (let i = 0; i < c; i++) {
+                  if (dots.length >= MAX_DOTS_PER_CELL) break
+                  dots.push(SHOW_COLOR[show] || UNASSIGNED.hex)
+                }
+                if (dots.length >= MAX_DOTS_PER_CELL) break
+              }
+            }
+            const overflow = count > MAX_DOTS_PER_CELL ? count - MAX_DOTS_PER_CELL : 0
+
+            const cls = [
+              'cal-cell',
+              cell.outside && 'cal-cell--outside',
+              inRange && 'cal-cell--in-range',
+              isStart && 'cal-cell--start',
+              isEnd && 'cal-cell--end',
+              isToday && 'cal-cell--today',
+              isHovered && 'cal-cell--hovered',
+              isPendingStart && 'cal-cell--pending',
+              count > 0 && 'cal-cell--has-posts',
+            ].filter(Boolean).join(' ')
+
+            const titleSummary = count === 0
+              ? cell.date.toLocaleDateString()
+              : `${cell.date.toLocaleDateString()}\n${dat.showOrder.map(s => `${s.show}: ${s.count}`).join('\n')}`
+
             return (
               <div
                 key={cell.key}
-                className={`cal-cell${cell.outside ? ' cal-cell--outside' : ''}${inRange ? ' cal-cell--in-range' : ''}${isStart ? ' cal-cell--start' : ''}${isEnd ? ' cal-cell--end' : ''}${isToday ? ' cal-cell--today' : ''}${isHovered ? ' cal-cell--hovered' : ''}${count > 0 ? ' cal-cell--has-posts' : ''}`}
-                onMouseDown={() => handleMouseDown(cell.key)}
+                className={cls}
+                onClick={() => handleClick(cell.key)}
                 onMouseEnter={() => handleMouseEnter(cell.key)}
-                onMouseUp={() => handleMouseUp(cell.key)}
-                title={count > 0 ? `${cell.date.toLocaleDateString()} — ${count} post${count===1?'':'s'}` : cell.date.toLocaleDateString()}
+                title={titleSummary}
               >
-                <div className="cal-cell-day">{cell.date.getDate()}</div>
+                {/* Density tint */}
                 {count > 0 && (
-                  <div className="cal-cell-density" style={{
-                    opacity: 0.25 + density * 0.75,
+                  <div className="cal-cell-tint" style={{
+                    opacity: 0.18 + density * 0.45,
                   }} />
                 )}
-                {count > 0 && (
-                  <div className="cal-cell-count">{count}</div>
+
+                {/* Top row: day number + count */}
+                <div className="cal-cell-header">
+                  <span className="cal-cell-day">{cell.date.getDate()}</span>
+                  {count > 0 && (
+                    <span className="cal-cell-count">{count}</span>
+                  )}
+                </div>
+
+                {/* Dot strip */}
+                {dots.length > 0 && (
+                  <div className="cal-cell-dots">
+                    {dots.map((color, i) => (
+                      <span key={i} className="cal-dot" style={{
+                        background: color,
+                        boxShadow: `0 0 4px ${color}aa`,
+                      }} />
+                    ))}
+                    {overflow > 0 && (
+                      <span className="cal-dot-overflow">+{overflow}</span>
+                    )}
+                  </div>
                 )}
               </div>
             )
           })}
         </div>
 
-        {/* Presets + clear */}
-        <div style={{
-          display: 'flex', gap: 5, marginTop: 10, flexWrap: 'wrap',
-          borderTop: '1px solid var(--border)', paddingTop: 10,
-        }}>
-          <button className="cal-preset-btn" onClick={() => applyPreset(7)}>7d</button>
-          <button className="cal-preset-btn" onClick={() => applyPreset(30)}>30d</button>
-          <button className="cal-preset-btn" onClick={() => applyPreset(90)}>90d</button>
-          <button className="cal-preset-btn" onClick={jumpToToday}>Today</button>
-          {selectedRange && (
-            <button className="cal-preset-btn cal-preset-btn--clear" onClick={clearRange}>✕ Clear</button>
-          )}
-          <span style={{
-            marginLeft: 'auto', fontFamily: 'DM Mono', fontSize: 9, color: 'var(--text3)',
-            alignSelf: 'center',
-          }}>
-            {postsInRange} post{postsInRange === 1 ? '' : 's'}
-          </span>
-        </div>
-
-        {/* Hint */}
-        <div style={{
-          marginTop: 6, fontFamily: 'DM Mono', fontSize: 8,
-          color: 'var(--text3)', letterSpacing: '0.4px',
-        }}>
-          Click a day to filter · drag across days for a range
+        {/* Presets + footer */}
+        <div className="cal-footer">
+          <div className="cal-presets">
+            <button className="cal-preset-btn" onClick={() => applyPreset(7)}>7d</button>
+            <button className="cal-preset-btn" onClick={() => applyPreset(30)}>30d</button>
+            <button className="cal-preset-btn" onClick={() => applyPreset(90)}>90d</button>
+            <button className="cal-preset-btn" onClick={jumpToToday}>Today</button>
+            {(selectedRange || pendingStart) && (
+              <button className="cal-preset-btn cal-preset-btn--clear" onClick={clearRange}>✕ Clear</button>
+            )}
+            <span className="cal-post-count">
+              {postsInRange} post{postsInRange === 1 ? '' : 's'}
+            </span>
+          </div>
+          <div className="cal-hint">{hintText}</div>
         </div>
       </div>
     </div>
